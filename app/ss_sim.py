@@ -11,8 +11,8 @@ from drive_utils import get_file_id_by_name, download_txt_file, creds
 # === CONFIG ===
 CSV_FILENAME = "simulated_values_ss.csv"
 FOLDER_ID = "1qroO12tPkKu6c3w5Xy-2Reys5XFcbX5L"  # Shared Drive folder with all the files
-LAT_FOLDER_ID = "1-UDQwKXUsjsOpKgKBeGaIO1Acv7T8wm6" # GDrive folder with single-site data
-SS_FOLDER_ID = "1VPQ4HARo7HJVXoXWRhVYYn79Svs3IZWq" # GDrive folder with lattice data
+
+SS_FOLDER_ID = "1VPQ4HARo7HJVXoXWRhVYYn79Svs3IZWq" # GDrive folder with single-site data
 
 
 shape = (101, 101)  # Shape of your simulation data files
@@ -61,23 +61,36 @@ plotly_colorscale = [(i / 254, to_hex(custom_cmap(i / 254))) for i in range(255)
 # === Dash App ===
 register_page(__name__, path='/', name='Single-site model')
 
-layout = html.Div(
-    [
+layout = html.Div([
+    html.H2("Single-site Simulation Viewer"),
+
+    html.Div([
+        # Column 1 – Sliders
         html.Div([
-            html.Label(param),
-            dcc.Slider(
-                min=min(values),
-                max=max(values),
-                step=None,
-                marks={v: str(v) for v in values},
-                value=values[0],
-                id=f"slider-{param}"
-            )
-        ], style={'margin': '20px'}) for param, values in param_values.items()
-    ] + [
-        dcc.Graph(id='energy-map')
-    ]
-)
+            html.H4("Parameters"),
+            *[
+                html.Div([
+                    html.Label(param),
+                    dcc.Slider(
+                        min=min(values),
+                        max=max(values),
+                        step=None,
+                        marks={float(v): str(v) for v in values},
+                        value=values[0],
+                        id=f"slider-{param}"
+                    )
+                ], style={"marginBottom": "25px"})
+                for param, values in param_values.items()
+            ]
+        ], style={"width": "33%", "padding": "15px"}),
+
+        # Column 2 – Graph
+        html.Div([
+            dcc.Graph(id='energy-map', style={"height": "100%", "width": "100%"})
+        ], style={"width": "67%", "padding": "15px"})
+    ], style={"display": "flex", "flexDirection": "row"})
+])
+
 
 
 @callback(

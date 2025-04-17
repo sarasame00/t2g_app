@@ -1,0 +1,30 @@
+{
+  "name": "t2g-electron-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.example.t2g",
+    "productName": "T2G App",
+    "files": [
+      "../dist/t2g_app.exe",
+      "**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist/t2g_app.exe",
+        "to": "t2g_app.exe"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

@@ -102,6 +102,22 @@ def get_completed_params_from_drive(csv_filename, parent_folder_id):
     return completed
 
 
+def download_file_as_bytes(file_id, token=None):
+    """
+    Download a file from Google Drive using its file ID and return the raw bytes.
+    """
+    if token is None:
+        if not creds.valid:
+            creds.refresh(io.Request())
+        token = creds.token
+
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    return response.content
 
 __all__ = [
     "get_file_id_by_name",
@@ -109,5 +125,6 @@ __all__ = [
     "upload_txt_file",
     "creds",
     "drive_service",
-    "get_completed_params_from_drive"
+    "get_completed_params_from_drive",
+    "download_file_as_bytes"
 ]

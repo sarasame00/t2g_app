@@ -2,9 +2,11 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyc
 *.pyd
 *.env
 *.venv
+*.spec
 *.egg-info/
 .env
 .venv/
@@ -41,3 +43,7 @@ Thumbs.db
 
 # === Secrets / Configs ===
 drive_service_account.json
+
+# PyInstaller/Electron build output
+dist/
+build/

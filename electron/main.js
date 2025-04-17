@@ -6,8 +6,9 @@ let mainWindow = null;
 let pythonProcess = null;
 
 function createWindow() {
-  const pythonPath = path.join(__dirname, '..', 'run.py');
-  pythonProcess = spawn('python3', [pythonPath]);
+  const pythonPath = path.join(__dirname, '..', 'dist', 't2g_app.exe');
+  pythonProcess = spawn(pythonPath);
+
 
   pythonProcess.stdout.on('data', (data) => {
     const msg = data.toString();
