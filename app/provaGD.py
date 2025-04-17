@@ -4,23 +4,27 @@ import pandas as pd
 import plotly.express as px
 from dash import Dash, dcc, html, Input, Output, callback
 from matplotlib.colors import LinearSegmentedColormap, to_hex
-from ...drive_utils import get_file_id_by_name, download_txt_file, creds
 import requests, io
+
+from drive_utils import get_file_id_by_name, download_txt_file, creds
 
 # === CONFIG ===
 CSV_FILENAME = "simulated_values_ss.csv"
-FOLDER_ID = "1qroO12tPkKu6c3w5Xy-2Reys5XFcbX5L"  # Shared Drive folder with all your files
+FOLDER_ID = "1qroO12tPkKu6c3w5Xy-2Reys5XFcbX5L"  # Shared Drive folder with all the files
+LAT_FOLDER_ID = "1-UDQwKXUsjsOpKgKBeGaIO1Acv7T8wm6" # GDrive folder with single-site data
+SS_FOLDER_ID = "1VPQ4HARo7HJVXoXWRhVYYn79Svs3IZWq" # GDrive folder with lattice data
+
 shape = (101, 101)  # Shape of your simulation data files
 
 
 
-def load_csv_from_drive_by_name(filename):
-    file_id = get_file_id_by_name(filename)
+def load_csv_from_drive_by_name(filename, parent_id):
+    file_id = get_file_id_by_name(filename, parent_id)
     if not file_id:
         raise FileNotFoundError(f"❌ CSV file '{filename}' not found in Google Drive folder")
 
     if not creds.valid:
-        creds.refresh(Request())
+        creds.refresh(os.Request())
 
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
     headers = {"Authorization": f"Bearer {creds.token}"}
@@ -32,7 +36,7 @@ def load_csv_from_drive_by_name(filename):
 
 
 # === Load main CSV ===
-df = load_csv_from_drive_by_name(CSV_FILENAME)
+df = load_csv_from_drive_by_name(CSV_FILENAME, SS_FOLDER_ID)
 
 # === Prepare sliders ===
 param_values = {
@@ -91,7 +95,7 @@ def update_figure(N, U, J, g, lbd, B):
     timestamp = str(match.iloc[0]["timestamp"])
     filename = f"{timestamp}"
 
-    file_id = get_file_id_by_name(filename)
+    file_id = get_file_id_by_name(filename, SS_FOLDER_ID)
 
     if not file_id:
         fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
