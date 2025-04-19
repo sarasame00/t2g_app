@@ -1,3 +1,4 @@
+'''
 import os
 import numpy as np
 import pandas as pd
@@ -137,3 +138,5 @@ def update_figure(N, U, J, g, lbd, B):
         transition_duration=300
     )
     return fig
+    
+'''
