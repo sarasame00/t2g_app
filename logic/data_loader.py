@@ -24,10 +24,15 @@ def load_simulation_metadata(model: str):
 def get_files_to_download(df, selected_ion_types, model):
     filtered_df = df[df["ion_type"].isin(selected_ion_types)].copy()
 
-    # Construct expected filenames like 20250417130557.hdf5
-    filtered_df["filename"] = filtered_df["timestamp"].astype(str) + ".hdf5"
+    # Use different file extensions per model
+    extension = {
+        "lat": ".hdf5",
+        "ss": ""  # no extension
+    }[model]
 
-    # Check which files are missing locally
+    filtered_df["filename"] = filtered_df["timestamp"].astype(str) + extension
+
+    # Check if files exist locally
     local_dir = LOCAL_DATA_FOLDER / f"{model}_data"
     filtered_df["downloaded"] = filtered_df["filename"].apply(
         lambda f: (local_dir / f).exists()
