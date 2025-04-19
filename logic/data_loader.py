@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 from logic.inference import infer_ion_type
 from sync.config import LOCAL_DATA_FOLDER

@@ -1,9 +1,9 @@
 import dash
-from dash import html, dcc, dash_table, Input, Output, State, callback
+from dash import html,ctx, dcc, dash_table, Input, Output, State, callback
+from dash.exceptions import PreventUpdate
 
 from logic.data_loader import load_simulation_metadata, get_files_to_download
 from sync.gdrive_sync import download_files_from_drive
-
 
 dash.register_page(__name__, path="/sync", name="Data Sync")
 
@@ -23,7 +23,12 @@ layout = html.Div([
     html.Br(),
     html.Button("⬇️ Download Missing Files", id="download-btn", n_clicks=0),
 
-    html.Div(id="download-output")
+    html.Div(id="download-output"),
+    html.Div(id="download-status"),
+    dcc.Interval(id="download-interval", interval=1000, n_intervals=0, disabled=True),
+    dcc.Store(id="files-to-download"),
+    dcc.Store(id="download-progress", data={"index": 0}),
+
 ])
 
 @callback(
@@ -42,12 +47,9 @@ def update_sim_table(n_clicks, model, ion_types):
     if missing.empty:
         return html.P("✅ All files are downloaded for selected ion types.")
 
-    # Explicit parameter columns based on model
     common_cols = ["ion_type", "N", "U", "J", "lbd", "g"]
     model_specific = {"lat": ["t"], "ss": ["B"]}
     display_cols = common_cols + model_specific.get(model, [])
-
-    # Only keep those columns if they exist in the dataframe
     display_cols = [col for col in display_cols if col in missing.columns]
 
     return dash_table.DataTable(
@@ -61,21 +63,56 @@ def update_sim_table(n_clicks, model, ion_types):
 
 
 @callback(
+    Output("files-to-download", "data"),
+    Output("download-progress", "data"),
     Output("download-output", "children"),
+    Output("download-status", "children"),
+    Output("download-interval", "disabled"),
     Input("download-btn", "n_clicks"),
+    Input("download-interval", "n_intervals"),
     State("model-select", "value"),
     State("ion-select", "value"),
+    State("files-to-download", "data"),
+    State("download-progress", "data"),
 )
-def handle_download(n_clicks, model, ion_types):
-    if n_clicks == 0:
-        return dash.no_update
+def manage_download(n_clicks, n_intervals, model, ion_types, filenames, progress):
+    triggered_id = ctx.triggered_id
 
-    df = load_simulation_metadata(model)
-    missing = get_files_to_download(df, ion_types, model)
-    filenames = missing["filename"].tolist()
+    if triggered_id == "download-btn":
+        if not n_clicks:
+            raise PreventUpdate
 
-    if not filenames:
-        return "✅ Nothing to download."
+        df = load_simulation_metadata(model)
+        missing = get_files_to_download(df, ion_types, model)
+        filenames = missing["filename"].tolist()
 
-    download_files_from_drive(filenames, model)
-    return f"⬇️ Downloaded {len(filenames)} file(s)."
+        if not filenames:
+            return [], {"index": 0}, "✅ Nothing to download.", "", True
+
+        return filenames, {"index": 0}, f"Preparing to download {len(filenames)} files...", "", False
+
+    elif triggered_id == "download-interval":
+        if not filenames:
+            raise PreventUpdate
+
+        index = progress["index"]
+
+        # ✅ Check for completion BEFORE downloading
+        if index >= len(filenames):
+            return filenames, progress, dash.no_update, "✅ Download complete.", True
+
+        filename = filenames[index]
+        print(f"⬇️ Downloading file {index+1}/{len(filenames)}: {filename}")
+        download_files_from_drive([filename], model)
+
+        new_index = index + 1
+
+        # ✅ If that was the last file, we also end it right here
+        if new_index >= len(filenames):
+            return filenames, {"index": new_index}, dash.no_update, "✅ Download complete.", True
+
+        status = f"⬇️ Downloaded {new_index}/{len(filenames)} file(s)..."
+        return filenames, {"index": new_index}, dash.no_update, status, False
+
+
+    raise PreventUpdate
