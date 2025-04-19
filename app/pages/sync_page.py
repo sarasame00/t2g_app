@@ -28,6 +28,8 @@ layout = html.Div([
     dcc.Interval(id="download-interval", interval=1000, n_intervals=0, disabled=True),
     dcc.Store(id="files-to-download"),
     dcc.Store(id="download-progress", data={"index": 0}),
+    dcc.Interval(id="clear-status-interval", interval=3000, n_intervals=0, disabled=True),
+
 
 ])
 
@@ -68,14 +70,16 @@ def update_sim_table(n_clicks, model, ion_types):
     Output("download-output", "children"),
     Output("download-status", "children"),
     Output("download-interval", "disabled"),
+    Output("clear-status-interval", "disabled"),
     Input("download-btn", "n_clicks"),
     Input("download-interval", "n_intervals"),
+    Input("clear-status-interval", "n_intervals"),
     State("model-select", "value"),
     State("ion-select", "value"),
     State("files-to-download", "data"),
     State("download-progress", "data"),
 )
-def manage_download(n_clicks, n_intervals, model, ion_types, filenames, progress):
+def manage_download(n_clicks, download_tick, clear_tick, model, ion_types, filenames, progress):
     triggered_id = ctx.triggered_id
 
     if triggered_id == "download-btn":
@@ -87,9 +91,10 @@ def manage_download(n_clicks, n_intervals, model, ion_types, filenames, progress
         filenames = missing["filename"].tolist()
 
         if not filenames:
-            return [], {"index": 0}, "✅ Nothing to download.", "", True
+            return [], {"index": 0}, "", "✅ Nothing to download.", True, False
 
-        return filenames, {"index": 0}, f"Preparing to download {len(filenames)} files...", "", False
+        return filenames, {"index": 0}, "", f"Preparing to download {len(filenames)} files...", False, True
+
 
     elif triggered_id == "download-interval":
         if not filenames:
@@ -109,10 +114,13 @@ def manage_download(n_clicks, n_intervals, model, ion_types, filenames, progress
 
         # ✅ If that was the last file, we also end it right here
         if new_index >= len(filenames):
-            return filenames, {"index": new_index}, dash.no_update, "✅ Download complete.", True
+            return filenames, {"index": new_index}, dash.no_update, "✅ Download complete.", True, False
 
         status = f"⬇️ Downloaded {new_index}/{len(filenames)} file(s)..."
-        return filenames, {"index": new_index}, dash.no_update, status, False
+        return filenames, {"index": new_index}, dash.no_update, status, False, True
+
+    if triggered_id == "clear-status-interval":
+        return dash.no_update, dash.no_update, dash.no_update, "", dash.no_update, True
 
 
     raise PreventUpdate
