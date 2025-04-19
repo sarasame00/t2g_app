@@ -1,3 +1,4 @@
+'''
 from dash import html, dcc, Input, Output, callback, register_page
 import os
 import io
@@ -132,3 +133,4 @@ def update_lat_plots(N, U, J, g, lbd, t):
 
     # Return 3 plots in left column, 2 in right
     return encoded_imgs[:3], encoded_imgs[3:]
+'''

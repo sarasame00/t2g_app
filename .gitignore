@@ -47,3 +47,5 @@ drive_service_account.json
 # PyInstaller/Electron build output
 dist/
 build/
+
+data/
