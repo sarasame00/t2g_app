@@ -87,7 +87,7 @@ def download_files_from_drive(filenames, model):
             print(f"✅ Already downloaded: {filename}")
             continue
 
-        print(f"⬇️ Downloading {filename}")
+        print(f"⬇️ Downloading {filename} ({downloaded_count+1}/{len(filenames)})")
         request = service.files().get_media(fileId=file_id)
         with open(local_path, "wb") as f:
             downloader = MediaIoBaseDownload(f, request)
