@@ -8,9 +8,14 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 app = Dash(__name__, use_pages=True)
 
 app.layout = html.Div([
-    html.H1("T2G App"),
-    dcc.Link("Sync Page", href="/sync"),
-    html.Hr(),
+    html.Div([
+        dcc.Link("Single-site model", href="/"),
+        html.Span(" | "),
+        dcc.Link("Lattice model", href="/lat"),
+        html.Span(" | "),
+        dcc.Link("Sync Page", href="/sync")
+    ], style={"marginBottom": "30px"}),  
+
     page_container
 ])
 
