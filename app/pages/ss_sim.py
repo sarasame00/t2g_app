@@ -1,56 +1,33 @@
-'''
-import os
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from dash import Dash, dcc, html, Input, Output, callback, register_page
+from dash import dcc, html, Input, Output, callback, register_page
 from matplotlib.colors import LinearSegmentedColormap, to_hex
-import requests, io
+from pathlib import Path
 
-from drive_utils import get_file_id_by_name, download_txt_file, creds
+from logic.data_loader import load_simulation_metadata
+from sync.config import LOCAL_DATA_FOLDER
 
 # === CONFIG ===
-CSV_FILENAME = "simulated_values_ss.csv"
-FOLDER_ID = "1qroO12tPkKu6c3w5Xy-2Reys5XFcbX5L"  # Shared Drive folder with all the files
+shape = (101, 101)  # Shape of the energy maps
+model = "ss"
+DATA_DIR = LOCAL_DATA_FOLDER / f"{model}_data"
 
-SS_FOLDER_ID = "1VPQ4HARo7HJVXoXWRhVYYn79Svs3IZWq" # GDrive folder with single-site data
+# === Load local metadata
+df = load_simulation_metadata(model)
+df["filename"] = df["timestamp"].astype(str)
+df["file_exists"] = df["filename"].apply(lambda f: (DATA_DIR / f).exists())
 
+# Filter to only downloaded simulations
+df = df[df["file_exists"]]
 
-shape = (101, 101)  # Shape of your simulation data files
-
-
-
-def load_csv_from_drive_by_name(filename, parent_id):
-    file_id = get_file_id_by_name(filename, parent_id)
-    if not file_id:
-        raise FileNotFoundError(f"❌ CSV file '{filename}' not found in Google Drive folder")
-
-    if not creds.valid:
-        creds.refresh(os.Request())
-
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-    headers = {"Authorization": f"Bearer {creds.token}"}
-
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-
-    return pd.read_csv(io.StringIO(response.text))
-
-
-# === Load main CSV ===
-df = load_csv_from_drive_by_name(CSV_FILENAME, SS_FOLDER_ID)
-
-# === Prepare sliders ===
+# === Prepare dropdowns ===
+param_names = ["N", "U", "J", "g", "lbd", "B"]
 param_values = {
-    "N": sorted([int(v) for v in df["N"].unique()]),
-    "U": sorted([float(v) for v in df["U"].unique()]),
-    "J": sorted([float(v) for v in df["J"].unique()]),
-    "g": sorted([float(v) for v in df["g"].unique()]),
-    "lbd": sorted([float(v) for v in df["lbd"].unique()]),
-    "B": sorted([float(v) for v in df["B"].unique()])
+    param: sorted(df[param].unique()) for param in param_names
 }
 
-# === Custom colormap ===
+# === Custom colormap
 colors = [
     (0.0, "black"), (0.15, "yellow"), (0.25, "orange"), (0.35, "red"),
     (0.5, "magenta"), (0.65, "blue"), (0.85, "cyan"), (1.0, "white")
@@ -58,67 +35,56 @@ colors = [
 custom_cmap = LinearSegmentedColormap.from_list("custom_map", colors)
 plotly_colorscale = [(i / 254, to_hex(custom_cmap(i / 254))) for i in range(255)]
 
-
-# === Dash App ===
+# === Dash Page Setup
 register_page(__name__, path='/', name='Single-site model')
 
 layout = html.Div([
     html.H2("Single-site Simulation Viewer"),
 
     html.Div([
-        # Column 1 – Sliders
         html.Div([
             html.H4("Parameters"),
             *[
                 html.Div([
                     html.Label(param),
-                    dcc.Slider(
-                        min=min(values),
-                        max=max(values),
-                        step=None,
-                        marks={float(v): str(v) for v in values},
+                    dcc.Dropdown(
+                        id=f"dropdown-{param}",
+                        options=[{"label": str(v), "value": v} for v in values],
                         value=values[0],
-                        id=f"slider-{param}"
+                        clearable=False
                     )
-                ], style={"marginBottom": "25px"})
+                ], style={"marginBottom": "20px"})
                 for param, values in param_values.items()
             ]
         ], style={"width": "33%", "padding": "15px"}),
 
-        # Column 2 – Graph
         html.Div([
-            dcc.Graph(id='energy-map', style={"height": "100%", "width": "100%"})
+            dcc.Graph(id="energy-map", style={"height": "100%", "width": "100%"})
         ], style={"width": "67%", "padding": "15px"})
     ], style={"display": "flex", "flexDirection": "row"})
 ])
 
 
-
 @callback(
     Output("energy-map", "figure"),
-    [Input(f"slider-{param}", "value") for param in param_values]
+    [Input(f"dropdown-{param}", "value") for param in param_names]
 )
 def update_figure(N, U, J, g, lbd, B):
-    match = df[(df["N"] == N) & (df["U"] == U) & (df["J"] == J) &
-               (df["g"] == g) & (df["B"] == B) & (df["lbd"] == lbd)]
+    match = df[
+        (df["N"] == N) & (df["U"] == U) & (df["J"] == J) &
+        (df["g"] == g) & (df["B"] == B) & (df["lbd"] == lbd)
+    ]
 
     if match.empty:
         fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
-        fig.update_layout(title="No matching simulation found")
+        fig.update_layout(title="❌ No matching simulation found")
         return fig
 
-    timestamp = str(match.iloc[0]["timestamp"])
-    filename = f"{timestamp}"
-
-    file_id = get_file_id_by_name(filename, SS_FOLDER_ID)
-
-    if not file_id:
-        fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
-        fig.update_layout(title=f"Missing file: {filename}")
-        return fig
+    filename = match.iloc[0]["filename"]
+    file_path = DATA_DIR / filename
 
     try:
-        data = download_txt_file(file_id)
+        data = np.loadtxt(file_path)
         emap = data[:, 2].reshape(shape)
         zmin = np.min(emap)
         zmax = zmin + (np.max(emap) - zmin) * 1.0
@@ -138,5 +104,3 @@ def update_figure(N, U, J, g, lbd, B):
         transition_duration=300
     )
     return fig
-    
-'''
