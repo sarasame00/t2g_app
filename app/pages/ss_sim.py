@@ -1,9 +1,7 @@
 import numpy as np
-import pandas as pd
 import plotly.express as px
 from dash import dcc, html, Input, Output, callback, register_page
 from matplotlib.colors import LinearSegmentedColormap, to_hex
-from pathlib import Path
 
 from logic.data_loader import load_simulation_metadata
 from sync.config import LOCAL_DATA_FOLDER

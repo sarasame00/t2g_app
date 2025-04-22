@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import os
-from core.sym_utils import take_borders, antifourier
+from logic.sym_utils import take_borders, antifourier
 
 outdir = "t2g_jt_soc/data/figures"
 

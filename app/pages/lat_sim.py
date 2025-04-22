@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 import requests
 from drive_utils import get_file_id_by_name, download_file_as_bytes, creds
-from core.loaders import load_correl_data
-import core.visualize as visual
+from logic.data_loader import load_correl_data
+import plots.visualize as visual
 
 register_page(__name__, path='/new', name='Lattice model')
 
@@ -21,7 +21,7 @@ shape = (101, 101)  # This might be unused unless needed later
 # === Load CSV ===
 def load_csv():
     if not creds.valid:
-        creds.refresh(os.Request())
+        creds.refresh(io.Request())
     file_id = get_file_id_by_name(CSV_FILENAME, LAT_FOLDER_ID)
     if not file_id:
         raise FileNotFoundError(f"❌ CSV file '{CSV_FILENAME}' not found in Google Drive folder")
