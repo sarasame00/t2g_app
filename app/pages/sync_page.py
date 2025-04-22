@@ -17,14 +17,24 @@ layout = html.Div([
 
     html.Br(),
     html.Button("🔍 Check Available Simulations", id="check-btn", n_clicks=0),
+    dcc.Loading(
+        id="loading-check",
+        type="circle",  
+        children=html.Div(id="table-container")
+    ),
 
-    html.Div(id="table-container"),
 
     html.Br(),
     html.Button("⬇️ Download Missing Files", id="download-btn", n_clicks=0),
+    dcc.Loading(
+        id="loading-download",
+        type="circle",
+        children=html.Div([
+            html.Div(id="download-output"),
+            html.Div(id="download-status"),
+        ])
+    ),
 
-    html.Div(id="download-output"),
-    html.Div(id="download-status"),
     dcc.Interval(id="download-interval", interval=1000, n_intervals=0, disabled=True),
     dcc.Store(id="files-to-download"),
     dcc.Store(id="download-progress", data={"index": 0}),
