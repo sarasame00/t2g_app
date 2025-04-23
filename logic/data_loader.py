@@ -1,8 +1,11 @@
 import pandas as pd
+from pathlib import Path
+import h5py
+
 from logic.inference import infer_ion_type
 from sync.config import LOCAL_DATA_FOLDER
 from sync.gdrive_sync import download_metadata_csv
-import h5py
+
 
 def load_simulation_metadata(model: str):
     assert model in ["lat", "ss"], "Model must be 'lat' or 'ss'"
@@ -43,23 +46,24 @@ def get_files_to_download(df, selected_ion_types, model):
     return filtered_df[~filtered_df["downloaded"]]
 
 
-
 def load_correl_data(h5_path):
     """
     Loads all data needed to plot orbital, spin-orbital, and spin-exchange correlations
     from a single .hdf5 simulation output file.
 
     Parameters:
-    - h5_path (str): Path to the .hdf5 file.
+    - h5_path (Union[str, Path]): Path to the .hdf5 file.
 
     Returns:
     - dict: Dictionary containing irrBZ, k_sz, and all correlators.
     """
+    h5_path = Path(h5_path)  # ensure it's a Path object
+
     with h5py.File(h5_path, "r") as f:
         return {
             "irrBZ": f["irrBZ"][:],
             "k_sz": f["k_sz"][()],
             "corrdiag": f["correldiag"][:],
             "corroffd": f["correloffd"][:],
-            "filename": h5_path.split("/")[-1].replace(".hdf5", "")
+            "filename": h5_path.stem  # this gives filename without extension
         }
