@@ -43,9 +43,10 @@ layout = html.Div([
         ], style={"width": "33%", "padding": "15px"}),
 
         html.Div([
-            html.Div(id="lat-left-plots", style={"marginBottom": "30px"}),
-            html.Div(id="lat-right-plots")
-        ], style={"width": "67%", "padding": "15px"})
+            html.Div(id="lat-left-plots", style={"flex": 1, "padding": "10px"}),
+            html.Div(id="lat-right-plots", style={"flex": 1, "padding": "10px"})
+        ], style={"display": "flex", "flexWrap": "wrap", "gap": "20px", "width": "67%", "padding": "15px"})
+
     ], style={"display": "flex", "flexDirection": "row"})
 ])
 
