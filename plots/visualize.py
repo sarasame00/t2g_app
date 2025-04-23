@@ -1,6 +1,12 @@
+import matplotlib
+matplotlib.use("Agg")  # Use non-GUI backend for Dash
 import matplotlib.pyplot as plt
 import os
+import io
+import base64
+
 from logic.sym_utils import take_borders, antifourier
+
 
 outdir = "t2g_jt_soc/data/figures"
 
@@ -160,3 +166,12 @@ def plot_spinexchange_momentum(data, outdir=outdir, return_fig=True):
     os.makedirs(outdir, exist_ok=True)
     fig.savefig(f"{outdir}/{data['filename']}_spinexchange_momentum.png", dpi=300)
     plt.close(fig)
+
+
+def fig_to_base64(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", dpi=150)
+    buf.seek(0)
+    encoded = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+    return f"data:image/png;base64,{encoded}"

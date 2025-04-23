@@ -1,119 +1,93 @@
-from dash import html, dcc, Input, Output, callback, register_page
-import io
+from dash import dcc, html, Input, Output, callback, register_page
 import pandas as pd
-import base64
-import matplotlib.pyplot as plt
-
-import requests
-from drive_utils import get_file_id_by_name, download_file_as_bytes, creds
-from logic.data_loader import load_correl_data
+from logic.data_loader import load_filtered_metadata, load_correl_data
 import plots.visualize as visual
 
+# === CONFIG ===
+model = "lat"
+shape = (101, 101)
+
+# === Load metadata
+df, DATA_DIR = load_filtered_metadata(model, data_ext=".hdf5")
+
+# === Round float params to avoid precision mismatch
+float_params = ["U", "J", "g", "t", "lbd"]
+df[float_params] = df[float_params].round(3)
+
+# === Parameter names and values
+param_names = ["N"] + float_params
+param_values = {param: sorted(df[param].unique()) for param in param_names}
+
+# === Page registration
 register_page(__name__, path='/lat', name='Lattice model')
 
-# === CONFIG ===
-CSV_FILENAME = "simulated_values_lat.csv"
-LAT_FOLDER_ID = "1-UDQwKXUsjsOpKgKBeGaIO1Acv7T8wm6" # GDrive folder with latice data
-shape = (101, 101)  # This might be unused unless needed later
-
-# === Load CSV ===
-def load_csv():
-    if not creds.valid:
-        creds.refresh(io.Request())
-    file_id = get_file_id_by_name(CSV_FILENAME, LAT_FOLDER_ID)
-    if not file_id:
-        raise FileNotFoundError(f"❌ CSV file '{CSV_FILENAME}' not found in Google Drive folder")
-
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-    headers = {"Authorization": f"Bearer {creds.token}"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-
-    return pd.read_csv(io.StringIO(response.text))
-
-df = load_csv()
-
-# === Extract parameter ranges ===
-param_values = {
-    "N": sorted(df["N"].unique()),
-    "U": sorted(df["U"].unique()),
-    "J": sorted(df["J"].unique()),
-    "g": sorted(df["g"].unique()),
-    "lbd": sorted(df["lbd"].unique()),
-    "t": sorted(df["t"].unique())
-}
-
-# === Layout ===
+# === Layout
 layout = html.Div([
-    html.H2("Lattice model"),
+    html.H2("Lattice Simulation Viewer"),
+
     html.Div([
-        # Column 1 – Sliders
         html.Div([
             html.H4("Parameters"),
             *[
                 html.Div([
                     html.Label(param),
-                    dcc.Slider(
-                        id=f"slider-{param}",
-                        min=min(values),
-                        max=max(values),
-                        step=None,
-                        marks={float(v): str(v) for v in values},
-                        value=values[0]
+                    dcc.Dropdown(
+                        id=f"dropdown-{param}",
+                        options=[{"label": str(v), "value": v} for v in values],
+                        value=values[0],
+                        clearable=False
                     )
-                ], style={"marginBottom": "30px"})
+                ], style={"marginBottom": "20px"})
                 for param, values in param_values.items()
             ]
-        ], style={"width": "33%", "padding": "10px"}),
+        ], style={"width": "33%", "padding": "15px"}),
 
-        # Column 2 – Left-side plots (3 stacked)
-        html.Div(id="lat-left-plots", style={"width": "33%", "padding": "10px"}),
-
-        # Column 3 – Right-side plots (2 stacked)
-        html.Div(id="lat-right-plots", style={"width": "33%", "padding": "10px"})
+        html.Div([
+            html.Div(id="lat-left-plots", style={"marginBottom": "30px"}),
+            html.Div(id="lat-right-plots")
+        ], style={"width": "67%", "padding": "15px"})
     ], style={"display": "flex", "flexDirection": "row"})
 ])
 
-
-
-# === Helper: convert matplotlib fig to base64 ===
-def fig_to_base64(fig):
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", dpi=150)
-    buf.seek(0)
-    encoded = base64.b64encode(buf.read()).decode('utf-8')
-    plt.close(fig)
-    return f"data:image/png;base64,{encoded}"
-
-
-# === Callback ===
+# === Callback
 @callback(
     Output("lat-left-plots", "children"),
     Output("lat-right-plots", "children"),
-    [Input(f"slider-{param}", "value") for param in param_values]
+    [Input(f"dropdown-{param}", "value") for param in param_names]
 )
-def update_lat_plots(N, U, J, g, lbd, t):
-    match = df[(df["N"] == N) & (df["U"] == U) & (df["J"] == J) &
-               (df["g"] == g) & (df["t"] == t) & (df["lbd"] == lbd)]
+def update_lat_plots(N, U, J, g, t, lbd):
+    # Round inputs for comparison
+    params = {
+        "N": N,
+        "U": round(U, 3),
+        "J": round(J, 3),
+        "g": round(g, 3),
+        "t": round(t, 3),
+        "lbd": round(lbd, 3)
+    }
+
+    match = df[
+        (df["N"] == params["N"]) &
+        (df["U"] == params["U"]) &
+        (df["J"] == params["J"]) &
+        (df["g"] == params["g"]) &
+        (df["t"] == params["t"]) &
+        (df["lbd"] == params["lbd"])
+    ]
 
     if match.empty:
         return html.P("❌ No matching simulation found."), html.P("")
 
-    filename = match.iloc[0]["timestamp"] + ".hdf5"
+    filename = match.iloc[0]["filename"]
+    file_path = DATA_DIR / filename
 
-    file_id = get_file_id_by_name(filename, LAT_FOLDER_ID)
-    if not file_id:
-        return html.P(f"❌ File '{filename}' not found in Google Drive")
-
-    raw_bytes = download_file_as_bytes(file_id)
-    tmp_path = f"/tmp/{filename}"
-    with open(tmp_path, "wb") as f:
-        f.write(raw_bytes)
+    if not file_path.exists():
+        return html.P(f"❌ File '{filename}' not found locally."), html.P("")
 
     try:
-        data = load_correl_data(tmp_path)
+        data = load_correl_data(file_path)
     except Exception as e:
-        return html.P(f"❌ Error: {e}"), html.P("")
+        return html.P(f"❌ Error reading file: {e}"), html.P("")
 
     # Generate plots
     plot_funcs = [
@@ -124,10 +98,11 @@ def update_lat_plots(N, U, J, g, lbd, t):
         visual.plot_spinexchange_momentum
     ]
 
-    encoded_imgs = []
-    for func in plot_funcs:
-        fig = func(data, return_fig=True)
-        encoded_imgs.append(html.Img(src=fig_to_base64(fig), style={"width": "100%", "marginBottom": "20px"}))
+    encoded_imgs = [
+        html.Img(
+            src=visual.fig_to_base64(func(data, return_fig=True)),
+            style={"width": "100%", "marginBottom": "20px"}
+        ) for func in plot_funcs
+    ]
 
-    # Return 3 plots in left column, 2 in right
     return encoded_imgs[:3], encoded_imgs[3:]
