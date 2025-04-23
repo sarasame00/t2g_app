@@ -1,6 +1,4 @@
-'''
 from dash import html, dcc, Input, Output, callback, register_page
-import os
 import io
 import pandas as pd
 import base64
@@ -11,7 +9,7 @@ from drive_utils import get_file_id_by_name, download_file_as_bytes, creds
 from logic.data_loader import load_correl_data
 import plots.visualize as visual
 
-register_page(__name__, path='/new', name='Lattice model')
+register_page(__name__, path='/lat', name='Lattice model')
 
 # === CONFIG ===
 CSV_FILENAME = "simulated_values_lat.csv"
@@ -133,4 +131,3 @@ def update_lat_plots(N, U, J, g, lbd, t):
 
     # Return 3 plots in left column, 2 in right
     return encoded_imgs[:3], encoded_imgs[3:]
-'''

@@ -3,21 +3,15 @@ import plotly.express as px
 from dash import dcc, html, Input, Output, callback, register_page
 from matplotlib.colors import LinearSegmentedColormap, to_hex
 
-from logic.data_loader import load_simulation_metadata
-from sync.config import LOCAL_DATA_FOLDER
+from logic.data_loader import load_filtered_metadata
+
 
 # === CONFIG ===
 shape = (101, 101)  # Shape of the energy maps
 model = "ss"
-DATA_DIR = LOCAL_DATA_FOLDER / f"{model}_data"
 
-# === Load local metadata
-df = load_simulation_metadata(model)
-df["filename"] = df["timestamp"].astype(str)
-df["file_exists"] = df["filename"].apply(lambda f: (DATA_DIR / f).exists())
-
-# Filter to only downloaded simulations
-df = df[df["file_exists"]]
+# === Load filtered metadata
+df, DATA_DIR = load_filtered_metadata(model)
 
 # === Prepare dropdowns ===
 param_names = ["N", "U", "J", "g", "lbd", "B"]
