@@ -1,5 +1,6 @@
 from dash import dcc, html, Input, Output, callback, register_page
 import pandas as pd
+import numpy as np
 from logic.data_loader import load_filtered_metadata, load_correl_data
 import plots.visualize as visual
 
@@ -10,9 +11,7 @@ shape = (101, 101)
 # === Load metadata
 df, DATA_DIR = load_filtered_metadata(model, data_ext=".hdf5")
 
-# === Round float params to avoid precision mismatch
 float_params = ["U", "J", "g", "t", "lbd"]
-df[float_params] = df[float_params].round(3)
 
 # === Parameter names and values
 param_names = ["N"] + float_params
@@ -21,6 +20,8 @@ param_values = {param: sorted(df[param].unique()) for param in param_names}
 # === Page registration
 register_page(__name__, path='/lat', name='Lattice model')
 
+
+
 # === Layout
 layout = html.Div([
     html.H2("Lattice Simulation Viewer"),
@@ -28,15 +29,13 @@ layout = html.Div([
     html.Div([
         html.Div([
             html.H4("Parameters"),
+            dcc.Store(id="lat-initializer", data={}, storage_type='memory'),
             *[
                 html.Div([
                     html.Label(param),
-                    dcc.Dropdown(
-                        id=f"dropdown-{param}",
-                        options=[{"label": str(v), "value": v} for v in values],
-                        value=values[0],
-                        clearable=False
-                    )
+                    
+                    dcc.Dropdown(id=f"dropdown-{param}", clearable=False)
+
                 ], style={"marginBottom": "20px"})
                 for param, values in param_values.items()
             ]
@@ -52,6 +51,25 @@ layout = html.Div([
 
 # === Callback
 @callback(
+    [Output(f"dropdown-{param}", "options") for param in param_names] +
+    [Output(f"dropdown-{param}", "value") for param in param_names],
+    Input("lat-initializer", "data")
+)
+def initialize_dropdowns(_):
+    df, _ = load_filtered_metadata(model, data_ext=".hdf5")
+
+    param_values = {param: sorted(df[param].unique()) for param in param_names}
+
+    options = [
+        [{"label": f"{v:.3f}", "value": v} for v in param_values[param]]
+        for param in param_names
+    ]
+
+    default_values = [param_values[param][0] for param in param_names]
+
+    return options + default_values
+
+@callback(
     Output("lat-left-plots", "children"),
     Output("lat-right-plots", "children"),
     [Input(f"dropdown-{param}", "value") for param in param_names]
@@ -60,21 +78,23 @@ def update_lat_plots(N, U, J, g, t, lbd):
     # Round inputs for comparison
     params = {
         "N": N,
-        "U": round(U, 3),
-        "J": round(J, 3),
-        "g": round(g, 3),
-        "t": round(t, 3),
-        "lbd": round(lbd, 3)
+        "U": U,
+        "J": J,
+        "g": g,
+        "t": t,
+        "lbd": lbd
     }
+
 
     match = df[
         (df["N"] == params["N"]) &
-        (df["U"] == params["U"]) &
-        (df["J"] == params["J"]) &
-        (df["g"] == params["g"]) &
-        (df["t"] == params["t"]) &
-        (df["lbd"] == params["lbd"])
-    ]
+        np.isclose(df["U"], params["U"]) &
+        np.isclose(df["J"], params["J"]) &
+        np.isclose(df["g"], params["g"]) &
+        np.isclose(df["t"], params["t"]) &
+        np.isclose(df["lbd"], params["lbd"])
+]
+
 
     if match.empty:
         return html.P("❌ No matching simulation found."), html.P("")
