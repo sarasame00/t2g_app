@@ -10,13 +10,12 @@ from logic.data_loader import load_filtered_metadata
 shape = (101, 101)  # Shape of the energy maps
 model = "ss"
 
-# === Load filtered metadata
+# === Load filtered metadata 
 df, DATA_DIR = load_filtered_metadata(model)
 
-# === Prepare dropdowns ===
+# === Prepare dropdowns (labels rounded, values untouched)
 param_names = ["N", "U", "J", "g", "lbd", "B"]
-param_values = {
-    param: sorted(df[param].unique()) for param in param_names
+param_values = { param: sorted(df[param].unique()) for param in param_names
 }
 
 # === Custom colormap
@@ -39,9 +38,10 @@ layout = html.Div([
             *[
                 html.Div([
                     html.Label(param),
+                    dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
                     dcc.Dropdown(
                         id=f"dropdown-{param}",
-                        options=[{"label": str(v), "value": v} for v in values],
+                        options=[{"label": f"{v:.3f}", "value": v} for v in values],
                         value=values[0],
                         clearable=False
                     )
@@ -62,9 +62,14 @@ layout = html.Div([
     [Input(f"dropdown-{param}", "value") for param in param_names]
 )
 def update_figure(N, U, J, g, lbd, B):
+    # Use np.isclose for float-safe comparison
     match = df[
-        (df["N"] == N) & (df["U"] == U) & (df["J"] == J) &
-        (df["g"] == g) & (df["B"] == B) & (df["lbd"] == lbd)
+        (df["N"] == N) &
+        np.isclose(df["U"], U) &
+        np.isclose(df["J"], J) &
+        np.isclose(df["g"], g) &
+        np.isclose(df["B"], B) &
+        np.isclose(df["lbd"], lbd)
     ]
 
     if match.empty:
