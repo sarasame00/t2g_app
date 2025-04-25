@@ -28,7 +28,7 @@ custom_cmap = LinearSegmentedColormap.from_list("custom_map", colors)
 plotly_colorscale = [(i / 254, to_hex(custom_cmap(i / 254))) for i in range(255)]
 
 # === Dash Page Setup
-register_page(__name__, path='/', name='Single-site model')
+register_page(__name__, path='/ss', name='Single-site model')
 
 layout = html.Div([
     html.H2("Single-site Simulation Viewer"),

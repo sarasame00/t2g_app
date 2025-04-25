@@ -9,7 +9,7 @@ app = Dash(__name__, use_pages=True)
 
 app.layout = html.Div([
     html.Div([
-        dcc.Link("Single-site model", href="/"),
+        dcc.Link("Single-site model", href="/ss"),
         html.Span(" | "),
         dcc.Link("Lattice model", href="/lat"),
         html.Span(" | "),
