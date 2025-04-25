@@ -35,16 +35,12 @@ layout = html.Div([
     html.Div([
         html.Div([
             html.H4("Parameters"),
+            dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
             *[
                 html.Div([
                     html.Label(param),
                     dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
-                    dcc.Dropdown(
-                        id=f"dropdown-{param}",
-                        options=[{"label": f"{v:.3f}", "value": v} for v in values],
-                        value=values[0],
-                        clearable=False
-                    )
+                    dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False)
                 ], style={"marginBottom": "20px"})
                 for param, values in param_values.items()
             ]
@@ -55,11 +51,28 @@ layout = html.Div([
         ], style={"width": "67%", "padding": "15px"})
     ], style={"display": "flex", "flexDirection": "row"})
 ])
+@callback(
+    [Output(f"ss-dropdown-{param}", "options") for param in param_names] +
+    [Output(f"ss-dropdown-{param}", "value") for param in param_names],
+    Input("ss-initializer", "data")
+)
+def initialize_dropdowns(_):
+    df, _ = load_filtered_metadata(model, data_ext="")
 
+    param_values = {param: sorted(df[param].unique()) for param in param_names}
+
+    options = [
+        [{"label": f"{v:.3f}", "value": v} for v in param_values[param]]
+        for param in param_names
+    ]
+
+    default_values = [param_values[param][0] for param in param_names]
+
+    return options + default_values
 
 @callback(
     Output("energy-map", "figure"),
-    [Input(f"dropdown-{param}", "value") for param in param_names]
+    [Input(f"ss-dropdown-{param}", "value") for param in param_names]
 )
 def update_figure(N, U, J, g, lbd, B):
     # Use np.isclose for float-safe comparison
