@@ -84,6 +84,7 @@ def plot_spin_real(data):
     )
 
     return fig
+
 '''
 
 def plot_nn_correlation_vs_t(t_values, correlation_AW, correlation_AT):

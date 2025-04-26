@@ -31,7 +31,7 @@ param_labels = {
 
 
 # === Page registration
-register_page(__name__, path='/lat', name='Lattice model')
+register_page(__name__, path='/lat_t', name='Lattice model (function of t) ')
 
 # === Layout
 layout = html.Div([
@@ -43,21 +43,21 @@ layout = html.Div([
             html.H4("Parameters"),
             html.Label("Select Ion Type:"),
             dcc.Dropdown(
-                id="ion-type-dropdown-lat",
+                id="ion-type-dropdown-lat-t",
                 options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
                 placeholder="Select an ion type",
                 value="3d_d1",
                 clearable=False,
                 style={"marginBottom": "25px", "width": "100%"}
             ),
-            dcc.Store(id="lat-initializer", data={}, storage_type='memory'),
+            dcc.Store(id="lat-t-initializer", data={}, storage_type='memory'),
             dcc.Loading(
-                id="loading-dropdowns-lat",
+                id="loading-dropdowns-lat-t",
                 type="dot",
                 children=[
                     html.Div([
                         html.Label(param_labels.get(param, param)),
-                        dcc.Dropdown(id=f"dropdown-{param}", clearable=False, style={"width": "100%"})
+                        dcc.Dropdown(id=f"t-dropdown-{param}", clearable=False, style={"width": "100%"})
                     ], style={"marginBottom": "25px"})
                     for param in param_names
                 ]
@@ -72,17 +72,18 @@ layout = html.Div([
         # Plot Area
         html.Div([
             dbc.Container([
-                # First row: 2 plots
+                # First row: 3 plots
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id="plot-1", style={"height": "35vh"}), width=6),
-                    dbc.Col(dcc.Graph(id="plot-3", style={"height": "35vh"}), width=6),
-
+                    dbc.Col(dcc.Graph(id="t-plot-1", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-3", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-5", style={"height": "35vh"}), width=4),
                 ]),
 
-                # Second row: 2 plots 
+                # Second row: 2 plots (leave third empty)
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id="plot-2", style={"height": "35vh"}), width=6),
-                    dbc.Col(dcc.Graph(id="plot-4", style={"height": "35vh"}), width=6),
+                    dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "35vh"}), width=4),
+                    dbc.Col(html.Div(), width=4),  # empty column for balance
                 ]),
             ], fluid=True)
         ], style={
@@ -110,9 +111,9 @@ layout = html.Div([
 # === Callbacks
 
 @callback(
-    [Output(f"dropdown-{param}", "options") for param in param_names] +
-    [Output(f"dropdown-{param}", "value") for param in param_names],
-    Input("ion-type-dropdown-lat", "value")
+    [Output(f"t-dropdown-{param}", "options") for param in param_names] +
+    [Output(f"t-dropdown-{param}", "value") for param in param_names],
+    Input("ion-type-dropdown-lat-t", "value")
 )
 def initialize_dropdowns(selected_ion_type):
     if not selected_ion_type:
@@ -132,16 +133,17 @@ def initialize_dropdowns(selected_ion_type):
     return options + default_values
 
 @callback(
-    Output("plot-1", "figure"),
-    Output("plot-2", "figure"),
-    Output("plot-3", "figure"),
-    Output("plot-4", "figure"),
-    [Input("ion-type-dropdown-lat", "value")] + [Input(f"dropdown-{param}", "value") for param in param_names]
+    Output("t-plot-1", "figure"),
+    Output("t-plot-2", "figure"),
+    Output("t-plot-3", "figure"),
+    Output("t-plot-4", "figure"),
+    Output("t-plot-5", "figure"),
+    [Input("ion-type-dropdown-lat-t", "value")] + [Input(f"t-dropdown-{param}", "value") for param in param_names]
 )
 def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     if not selected_ion_type:
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
-        return empty_fig, empty_fig, empty_fig, empty_fig
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
 
@@ -156,26 +158,27 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
 
     if match.empty:
         empty_fig = visual.empty_plot(message="❌ No matching simulation found")
-        return empty_fig, empty_fig, empty_fig, empty_fig
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     filename = match.iloc[0]["filename"]
     file_path = DATA_DIR / filename
 
     if not file_path.exists():
         empty_fig = visual.empty_plot()
-        return empty_fig, empty_fig, empty_fig, empty_fig
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     try:
         data = load_correl_data(file_path)
     except Exception as e:
         empty_fig = visual.empty_plot()
-        return empty_fig, empty_fig, empty_fig, empty_fig
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     fig_orbital_momentum = visual.plot_orbital_momentum(data)
     fig_spin_momentum = visual.plot_spin_momentum(data)
     fig_orbital_real = visual.plot_orbital_real(data)
     fig_spin_real = visual.plot_spin_real(data)
-  
+    fig_nearest_neighbor = visual.empty_plot()
+
     # Important: Match x-axes inside the same column
     fig_orbital_momentum.update_layout(xaxis=dict(matches='x2'))
     fig_spin_momentum.update_layout(xaxis=dict(matches='x2'))
@@ -183,4 +186,4 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     fig_orbital_real.update_layout(xaxis=dict(matches='x4'))
     fig_spin_real.update_layout(xaxis=dict(matches='x4'))
 
-    return fig_orbital_momentum, fig_spin_momentum, fig_orbital_real, fig_spin_real
+    return fig_orbital_momentum, fig_spin_momentum, fig_orbital_real, fig_spin_real, fig_nearest_neighbor
