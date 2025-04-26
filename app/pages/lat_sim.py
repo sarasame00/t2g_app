@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from logic.data_loader import load_filtered_metadata, load_correl_data
 import plots.visualize as visual
-from logic.inference import infer_ion_type  # <-- your function for infering ion type
+from logic.inference import infer_ion_type
 
 # === CONFIG ===
 model = "lat"
@@ -26,6 +26,7 @@ layout = html.Div([
     html.H2("Lattice Simulation Viewer"),
 
     html.Div([
+        # Sidebar for Parameters
         html.Div([
             html.H4("Parameters"),
             html.Label("Select Ion Type:"),
@@ -34,36 +35,51 @@ layout = html.Div([
                 options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
                 placeholder="Select an ion type",
                 clearable=False,
-                style={"marginBottom": "20px"}
+                style={"marginBottom": "10px", "width": "100%"}
             ),
             dcc.Store(id="lat-initializer", data={}, storage_type='memory'),
             dcc.Loading(
                 id="loading-dropdowns-lat",
                 type="dot",
                 children=[
-                    *[
-                        html.Div([
-                            html.Label(param),
-                            dcc.Dropdown(id=f"dropdown-{param}", clearable=False)
-                        ], style={"marginBottom": "20px"})
-                        for param in param_names
-                    ]
+                    html.Div([
+                        html.Label(param),
+                        dcc.Dropdown(id=f"dropdown-{param}", clearable=False, style={"width": "100%"})
+                    ], style={"marginBottom": "10px"})
+                    for param in param_names
                 ]
             )
-        ], style={"width": "25%", "padding": "15px"}),
+        ], style={
+            "flex": "0 0 250px",
+            "padding": "15px",
+            "boxSizing": "border-box",
+            "height": "calc(100vh - 60px)",
+            "overflowY": "auto"
+        }),
 
+        # Plot area
         html.Div([
-            dcc.Loading(
-                id="loading-plots-lat",
-                type="circle",
-                children=html.Div([
-                    html.Div(id="lat-left-plots", style={"flex": 1, "padding": "10px"}),
-                    html.Div(id="lat-right-plots", style={"flex": 1, "padding": "10px"})
-                ], style={"display": "flex", "flexWrap": "wrap", "gap": "20px"})
-            )
-        ], style={"width": "75%", "padding": "15px"})
-    ], style={"display": "flex", "flexDirection": "row"})
+            html.Div([
+                html.Div(id="column-1", style={"flex": "1", "display": "flex", "flexDirection": "column", "gap": "10px"}),
+                html.Div(id="column-2", style={"flex": "1", "display": "flex", "flexDirection": "column", "gap": "10px"}),
+                html.Div(id="column-3", style={"flex": "1", "display": "flex", "flexDirection": "column", "gap": "10px"})
+            ], style={
+                "display": "flex",
+                "flexDirection": "row",
+                "gap": "10px",
+                "height": "calc(100vh - 60px)",
+                "overflow": "hidden",
+                "width": "100%"
+            })
+        ], style={"flex": "1", "padding": "15px", "boxSizing": "border-box"})
+    ], style={
+        "display": "flex",
+        "flexDirection": "row",
+        "height": "calc(100vh - 60px)",
+        "overflow": "hidden"
+    })
 ])
+
 
 
 # === Callbacks
@@ -91,16 +107,17 @@ def initialize_dropdowns(selected_ion_type):
     return options + default_values
 
 @callback(
-    Output("lat-left-plots", "children"),
-    Output("lat-right-plots", "children"),
+    Output("column-1", "children"),
+    Output("column-2", "children"),
+    Output("column-3", "children"),
     [Input("ion-type-dropdown-lat", "value")] + [Input(f"dropdown-{param}", "value") for param in param_names]
 )
 def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     if not selected_ion_type:
-        return html.P("❌ Select an ion type."), html.P("")
-    
+        return [html.P("❌ Select an ion type.")], [html.P("")], [html.P("")]
+
     filtered_df = df[df['ion_type'] == selected_ion_type]
-    
+
     match = filtered_df[
         (filtered_df["N"] == 1) &
         np.isclose(filtered_df["U"], U) &
@@ -109,40 +126,43 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
         np.isclose(filtered_df["t"], t) &
         np.isclose(filtered_df["lbd"], lbd)
     ]
-    
+
     if match.empty:
-        return html.P("❌ No matching simulation found."), html.P("")
-    
+        return [html.P("❌ No matching simulation found.")], [html.P("")], [html.P("")]
+
     filename = match.iloc[0]["filename"]
     file_path = DATA_DIR / filename
-    
+
     if not file_path.exists():
-        return html.P(f"❌ File '{filename}' not found locally."), html.P("")
-    
+        return [html.P(f"❌ File '{filename}' not found locally.")], [html.P("")], [html.P("")]
+
     try:
         data = load_correl_data(file_path)
     except Exception as e:
-        return html.P(f"❌ Error reading file: {e}"), html.P("")
-    
-    # Generate plots (same as your original way)
-    plot_funcs = [
-        visual.plot_orbital_momentum,
-        visual.plot_orbital_real,
-        visual.plot_spin_momentum,
-        visual.plot_spin_real,
-        visual.plot_spinexchange_momentum
-    ]
-    
-    encoded_imgs = [
-        html.Img(
-            src=visual.fig_to_base64(func(data, return_fig=True)),
-            style={"width": "100%", "marginBottom": "20px"}
-        ) for func in plot_funcs
-    ]
-    
-    # === IMPORTANT: split exactly as before ===
-    left_column = html.Div(encoded_imgs[:3], style={"display": "flex", "flexDirection": "column", "gap": "10px"})
-    right_column = html.Div(encoded_imgs[3:], style={"display": "flex", "flexDirection": "column", "gap": "10px"})
-    
-    return left_column, right_column
+        return [html.P(f"❌ Error reading file: {e}")], [html.P("")], [html.P("")]
 
+    fig_orbital_momentum = visual.plot_orbital_momentum(data)
+    fig_spin_momentum = visual.plot_spin_momentum(data)
+    fig_orbital_real = visual.plot_orbital_real(data)
+    fig_spin_real = visual.plot_spin_real(data)
+    fig_spinexchange_momentum = visual.plot_spinexchange_momentum(data)
+
+    # Share x-axis for real-space plots only
+    fig_orbital_real.update_layout(xaxis_matches='x2')
+    fig_spin_real.update_layout(xaxis_matches='x2')
+
+    column_1 = [
+        dcc.Graph(figure=fig_orbital_momentum, style={"height": "45%", "width": "100%"}),
+        dcc.Graph(figure=fig_spin_momentum, style={"height": "45%", "width": "100%"})
+    ]
+
+    column_2 = [
+        dcc.Graph(figure=fig_orbital_real, style={"height": "45%", "width": "100%"}),
+        dcc.Graph(figure=fig_spin_real, style={"height": "45%", "width": "100%"})
+    ]
+
+    column_3 = [
+        dcc.Graph(figure=fig_spinexchange_momentum, style={"height": "45%", "width": "100%"})
+    ]
+
+    return column_1, column_2, column_3
