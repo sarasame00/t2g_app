@@ -20,6 +20,15 @@ df['ion_type'] = df.apply(infer_ion_type, axis=1)
 param_names = ["U", "J", "g", "lbd", "B"]  # N is now FIXED per ion type
 param_values = {param: sorted(df[param].unique()) for param in param_names}
 
+# Map internal param names to display labels
+param_labels = {
+    "U": "U (eV)",
+    "J": "J (eV)",
+    "g": "g (eV)",
+    "B": "B (eV)",
+    "lbd": "ξ (eV)"
+}
+
 # === Custom colormap
 colors = [
     (0.0, "black"), (0.15, "yellow"), (0.25, "orange"), (0.35, "red"),
@@ -43,6 +52,7 @@ layout = html.Div([
                 id="ion-type-dropdown-ss",
                 options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
                 placeholder="Select an ion type",
+                value="3d_d1",
                 clearable=False,
                 style={"marginBottom": "25px", "width": "100%"}
             ),
@@ -52,7 +62,7 @@ layout = html.Div([
                 type="dot",
                 children=[
                     html.Div([
-                        html.Label(param),
+                        html.Label(param_labels.get(param, param)),
                         dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False, style={"width": "100%"})
                     ], style={"marginBottom": "25px"})
                     for param in param_names

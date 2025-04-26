@@ -19,12 +19,23 @@ df['ion_type'] = df.apply(infer_ion_type, axis=1)
 float_params = ["U", "J", "g", "t", "lbd"]
 param_names = float_params
 
+# Map internal param names to display labels
+param_labels = {
+    "U": "U (eV)",
+    "J": "J (eV)",
+    "g": "g (eV)",
+    "t": "t (eV)",
+    "lbd": "ξ (eV)"
+}
+
+
+
 # === Page registration
 register_page(__name__, path='/lat', name='Lattice model')
 
 # === Layout
 layout = html.Div([
-    html.H2("Lattice Simulation Viewer"),
+    html.H2("Lattice Model"),
 
     html.Div([
         # Sidebar
@@ -35,6 +46,7 @@ layout = html.Div([
                 id="ion-type-dropdown-lat",
                 options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
                 placeholder="Select an ion type",
+                value="3d_d1",
                 clearable=False,
                 style={"marginBottom": "25px", "width": "100%"}
             ),
@@ -44,7 +56,7 @@ layout = html.Div([
                 type="dot",
                 children=[
                     html.Div([
-                        html.Label(param),
+                        html.Label(param_labels.get(param, param)),
                         dcc.Dropdown(id=f"dropdown-{param}", clearable=False, style={"width": "100%"})
                     ], style={"marginBottom": "25px"})
                     for param in param_names
@@ -130,7 +142,7 @@ def initialize_dropdowns(selected_ion_type):
 )
 def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     if not selected_ion_type:
-        empty_fig = visual.empty_plot()
+        empty_fig = visual.empty_plot(message="❌ Select an ion type")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
@@ -145,7 +157,7 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     ]
 
     if match.empty:
-        empty_fig = visual.empty_plot()
+        empty_fig = visual.empty_plot(message="❌ No matching simulation found")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     filename = match.iloc[0]["filename"]
