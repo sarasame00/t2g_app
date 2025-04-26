@@ -4,6 +4,7 @@ import numpy as np
 from logic.data_loader import load_filtered_metadata, load_correl_data
 import plots.visualize as visual
 from logic.inference import infer_ion_type
+import dash_bootstrap_components as dbc
 
 # === CONFIG ===
 model = "lat"
@@ -26,7 +27,7 @@ layout = html.Div([
     html.H2("Lattice Simulation Viewer"),
 
     html.Div([
-        # Sidebar for Parameters
+        # Sidebar
         html.Div([
             html.H4("Parameters"),
             html.Label("Select Ion Type:"),
@@ -57,28 +58,38 @@ layout = html.Div([
             "overflowY": "auto"
         }),
 
-        # Plot area
+        # Plot Area
         html.Div([
-            html.Div([
-                html.Div(id="column-1", style={"flex": "1", "display": "flex", "flexDirection": "column", "gap": "10px"}),
-                html.Div(id="column-2", style={"flex": "1", "display": "flex", "flexDirection": "column", "gap": "10px"}),
-                html.Div(id="column-3", style={"flex": "1", "display": "flex", "flexDirection": "column", "gap": "10px"})
-            ], style={
-                "display": "flex",
-                "flexDirection": "row",
-                "gap": "10px",
-                "height": "calc(100vh - 60px)",
-                "overflow": "hidden",
-                "width": "100%"
-            })
-        ], style={"flex": "1", "padding": "15px", "boxSizing": "border-box"})
-    ], style={
+            dbc.Container([
+                # First row: 3 plots
+                dbc.Row([
+                    dbc.Col(dcc.Graph(id="plot-1", style={"height": "40vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-3", style={"height": "40vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-5", style={"height": "40vh"}), width=4),
+                ]),
+
+                # Second row: 2 plots (leave third empty)
+                dbc.Row([
+                    dbc.Col(dcc.Graph(id="plot-2", style={"height": "40vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-4", style={"height": "40vh"}), width=4),
+                    dbc.Col(html.Div(), width=4),  # empty column for balance
+                ]),
+            ], fluid=True)
+        ], style={
+            "flex": "1",
+            "padding": "15px",
+            "boxSizing": "border-box"
+        })
+    ],  
+    style={
         "display": "flex",
         "flexDirection": "row",
         "height": "calc(100vh - 60px)",
         "overflow": "hidden"
     })
 ])
+
+
 
 
 
@@ -107,14 +118,17 @@ def initialize_dropdowns(selected_ion_type):
     return options + default_values
 
 @callback(
-    Output("column-1", "children"),
-    Output("column-2", "children"),
-    Output("column-3", "children"),
+    Output("plot-1", "figure"),
+    Output("plot-2", "figure"),
+    Output("plot-3", "figure"),
+    Output("plot-4", "figure"),
+    Output("plot-5", "figure"),
     [Input("ion-type-dropdown-lat", "value")] + [Input(f"dropdown-{param}", "value") for param in param_names]
 )
 def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     if not selected_ion_type:
-        return [html.P("❌ Select an ion type.")], [html.P("")], [html.P("")]
+        empty_fig = visual.empty_plot()
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
 
@@ -128,18 +142,21 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     ]
 
     if match.empty:
-        return [html.P("❌ No matching simulation found.")], [html.P("")], [html.P("")]
+        empty_fig = visual.empty_plot()
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     filename = match.iloc[0]["filename"]
     file_path = DATA_DIR / filename
 
     if not file_path.exists():
-        return [html.P(f"❌ File '{filename}' not found locally.")], [html.P("")], [html.P("")]
+        empty_fig = visual.empty_plot()
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     try:
         data = load_correl_data(file_path)
     except Exception as e:
-        return [html.P(f"❌ Error reading file: {e}")], [html.P("")], [html.P("")]
+        empty_fig = visual.empty_plot()
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
     fig_orbital_momentum = visual.plot_orbital_momentum(data)
     fig_spin_momentum = visual.plot_spin_momentum(data)
@@ -147,22 +164,11 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
     fig_spin_real = visual.plot_spin_real(data)
     fig_spinexchange_momentum = visual.plot_spinexchange_momentum(data)
 
-    # Share x-axis for real-space plots only
-    fig_orbital_real.update_layout(xaxis_matches='x2')
-    fig_spin_real.update_layout(xaxis_matches='x2')
+    # Important: Match x-axes inside the same column
+    fig_orbital_momentum.update_layout(xaxis=dict(matches='x2'))
+    fig_spin_momentum.update_layout(xaxis=dict(matches='x2'))
 
-    column_1 = [
-        dcc.Graph(figure=fig_orbital_momentum, style={"height": "45%", "width": "100%"}),
-        dcc.Graph(figure=fig_spin_momentum, style={"height": "45%", "width": "100%"})
-    ]
+    fig_orbital_real.update_layout(xaxis=dict(matches='x4'))
+    fig_spin_real.update_layout(xaxis=dict(matches='x4'))
 
-    column_2 = [
-        dcc.Graph(figure=fig_orbital_real, style={"height": "45%", "width": "100%"}),
-        dcc.Graph(figure=fig_spin_real, style={"height": "45%", "width": "100%"})
-    ]
-
-    column_3 = [
-        dcc.Graph(figure=fig_spinexchange_momentum, style={"height": "45%", "width": "100%"})
-    ]
-
-    return column_1, column_2, column_3
+    return fig_orbital_momentum, fig_spin_momentum, fig_orbital_real, fig_spin_real, fig_spinexchange_momentum

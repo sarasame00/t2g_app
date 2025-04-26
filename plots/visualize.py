@@ -11,19 +11,12 @@ def plot_orbital_momentum(data):
     fig.add_trace(go.Scatter(x=dist, y=orbcharge_k, mode='lines'))
 
     fig.update_layout(
-        width=600,
-        height=400,
-        margin=dict(l=40, r=20, t=40, b=40),
-        xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
+        margin=dict(l=20, r=20, t=40, b=10),
         yaxis_title="⟨ δ𝕋<sub>q</sub> δ𝕋<sub>q</sub> ⟩",
         xaxis=dict(
             tickmode="array",
             tickvals=[dist[i * (k_sz // 2)] for i in range(8)],
-            ticktext=["Γ", "X", "M", "Γ", "R", "X", "M", "R"]
-        ),
-        yaxis=dict(
-            tickmode="array",
-            tickvals=[0, 0.5, 1, 1.5, 2, 2.5, 3]
+            ticktext=["", "", "", "", "", "", "", ""]
         ),
     )
 
@@ -41,12 +34,9 @@ def plot_orbital_real(data):
     fig.add_trace(go.Scatter(x=x, y=orbcharge_r, mode='markers+lines'))
 
     fig.update_layout(
-        width=600,
-        height=400,
-        margin=dict(l=40, r=20, t=40, b=40),
-        xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
+        margin=dict(l=20, r=20, t=40, b=10),
         yaxis_title="⟨ δ𝕋<sub>i</sub> δ𝕋<sub>j</sub> ⟩",
-        xaxis=dict(tickmode="array", tickvals=[0, 3, 6, 9, 12, 15]),
+        xaxis=dict(tickmode="array", tickvals=[0, 3, 6, 9, 12, 15], ticktext=["", "", "", "", "", ""]),
         yaxis=dict(tickmode="array", tickvals=[-0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15], range=[-0.18, 0.18])
     )
 
@@ -62,19 +52,13 @@ def plot_spin_momentum(data):
     fig.add_trace(go.Scatter(x=dist, y=spin_k, mode='lines'))
 
     fig.update_layout(
-        width=600,
-        height=400,
-        margin=dict(l=40, r=20, t=40, b=40),
+        margin=dict(l=20, r=20, t=10, b=10),
         xaxis_title="q along iBZ path",
         yaxis_title="⟨ δ𝕎<sub>q</sub> δ𝕎<sub>q</sub> ⟩",
         xaxis=dict(
             tickmode="array",
             tickvals=[dist[i * (k_sz // 2)] for i in range(8)],
             ticktext=["Γ", "X", "M", "Γ", "R", "X", "M", "R"]
-        ),
-        yaxis=dict(
-            tickmode="array",
-            tickvals=[0, 0.5, 1, 1.5, 2, 2.5, 3]
         ),
     )
 
@@ -92,9 +76,7 @@ def plot_spin_real(data):
     fig.add_trace(go.Scatter(x=x, y=spin_r, mode='markers+lines'))
 
     fig.update_layout(
-        width=600,
-        height=400,
-        margin=dict(l=40, r=20, t=40, b=40),
+        margin=dict(l=20, r=20, t=10, b=10),
         xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
         yaxis_title="⟨ δ𝕎<sub>i</sub> δ𝕎<sub>j</sub> ⟩",
         xaxis=dict(tickmode="array", tickvals=[0, 3, 6, 9, 12, 15]),
@@ -112,9 +94,7 @@ def plot_spinexchange_momentum(data):
     fig.add_trace(go.Scatter(x=dist, y=exchange_k, mode='lines'))
 
     fig.update_layout(
-        width=600,
-        height=400,
-        margin=dict(l=40, r=20, t=40, b=40),
+        margin=dict(l=20, r=20, t=40, b=0),
         xaxis_title="q along iBZ path",
         yaxis_title="⟨ δn<sub>↑q</sub> δn<sub>↓q</sub> ⟩",
         xaxis=dict(showgrid=True),
@@ -124,7 +104,7 @@ def plot_spinexchange_momentum(data):
     return fig
 
 
-def empty_plot(message="No data available."):
+def empty_plot(message=""):
     fig = go.Figure()
     fig.update_layout(
         title=message,

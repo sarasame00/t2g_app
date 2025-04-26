@@ -1,11 +1,12 @@
 from dash import dcc, Dash, html, page_container
 import sys
 from pathlib import Path
+import dash_bootstrap_components as dbc
 
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-app = Dash(__name__, use_pages=True)
+app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.FLATLY])
 
 app.layout = html.Div([
     html.Div([
