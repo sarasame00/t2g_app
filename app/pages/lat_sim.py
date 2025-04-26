@@ -36,7 +36,7 @@ layout = html.Div([
                 options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
                 placeholder="Select an ion type",
                 clearable=False,
-                style={"marginBottom": "10px", "width": "100%"}
+                style={"marginBottom": "25px", "width": "100%"}
             ),
             dcc.Store(id="lat-initializer", data={}, storage_type='memory'),
             dcc.Loading(
@@ -46,7 +46,7 @@ layout = html.Div([
                     html.Div([
                         html.Label(param),
                         dcc.Dropdown(id=f"dropdown-{param}", clearable=False, style={"width": "100%"})
-                    ], style={"marginBottom": "10px"})
+                    ], style={"marginBottom": "25px"})
                     for param in param_names
                 ]
             )
@@ -54,7 +54,6 @@ layout = html.Div([
             "flex": "0 0 250px",
             "padding": "15px",
             "boxSizing": "border-box",
-            "height": "calc(100vh - 60px)",
             "overflowY": "auto"
         }),
 
@@ -63,15 +62,15 @@ layout = html.Div([
             dbc.Container([
                 # First row: 3 plots
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id="plot-1", style={"height": "40vh"}), width=4),
-                    dbc.Col(dcc.Graph(id="plot-3", style={"height": "40vh"}), width=4),
-                    dbc.Col(dcc.Graph(id="plot-5", style={"height": "40vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-1", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-3", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-5", style={"height": "35vh"}), width=4),
                 ]),
 
                 # Second row: 2 plots (leave third empty)
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id="plot-2", style={"height": "40vh"}), width=4),
-                    dbc.Col(dcc.Graph(id="plot-4", style={"height": "40vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-2", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="plot-4", style={"height": "35vh"}), width=4),
                     dbc.Col(html.Div(), width=4),  # empty column for balance
                 ]),
             ], fluid=True)
@@ -84,10 +83,14 @@ layout = html.Div([
     style={
         "display": "flex",
         "flexDirection": "row",
-        "height": "calc(100vh - 60px)",
         "overflow": "hidden"
     })
-])
+], style={
+    "margin": "20px",   
+    "padding": "10px",  
+    "boxSizing": "border-box",
+    "overflow": "hidden"  
+})
 
 
 
