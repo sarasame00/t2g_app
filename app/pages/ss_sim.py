@@ -147,7 +147,6 @@ def update_figure(selected_ion_type, U, J, g, lbd, B):
         zmax=zmax
     )
     fig.update_layout(
-        title=f"Ground State Energy — Ion: {selected_ion_type}, U={U}, J={J}, g={g}, B={B}, λ={lbd}",
         transition_duration=300
     )
     return fig
