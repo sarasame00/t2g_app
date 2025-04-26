@@ -36,21 +36,37 @@ layout = html.Div([
         html.Div([
             html.H4("Parameters"),
             dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
-            *[
-                html.Div([
-                    html.Label(param),
-                    dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
-                    dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False)
-                ], style={"marginBottom": "20px"})
-                for param, values in param_values.items()
-            ]
-        ], style={"width": "33%", "padding": "15px"}),
+            dcc.Loading(
+                id="loading-dropdowns",
+                type="dot",
+                children=[
+                    *[
+                        html.Div([
+                            html.Label(param),
+                            dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False)
+                        ], style={"marginBottom": "20px"})
+                        for param, values in param_values.items()
+                    ]
+                ]
+            )
+        ], style={"width": "25%", "padding": "15px"}),
+
 
         html.Div([
-            dcc.Graph(id="energy-map", style={"height": "100%", "width": "100%"})
-        ], style={"width": "67%", "padding": "15px"})
+            dcc.Loading(
+                id="loading-energy-map",
+                type="circle",  
+                fullscreen=False,
+                children=[
+                    dcc.Graph(id="energy-map", style={"height": "100%", "width": "100%"})
+                ]
+            )
+        ], style={"width": "75%", "padding": "15px"})
+
     ], style={"display": "flex", "flexDirection": "row"})
 ])
+
+
 @callback(
     [Output(f"ss-dropdown-{param}", "options") for param in param_names] +
     [Output(f"ss-dropdown-{param}", "value") for param in param_names],

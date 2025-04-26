@@ -30,24 +30,35 @@ layout = html.Div([
         html.Div([
             html.H4("Parameters"),
             dcc.Store(id="lat-initializer", data={}, storage_type='memory'),
-            *[
-                html.Div([
-                    html.Label(param),
-                    
-                    dcc.Dropdown(id=f"dropdown-{param}", clearable=False)
-
-                ], style={"marginBottom": "20px"})
-                for param, values in param_values.items()
-            ]
-        ], style={"width": "33%", "padding": "15px"}),
+            dcc.Loading(
+                id="loading-dropdowns-lat",
+                type="dot",
+                children=[
+                    *[
+                        html.Div([
+                            html.Label(param),
+                            dcc.Dropdown(id=f"dropdown-{param}", clearable=False)
+                        ], style={"marginBottom": "20px"})
+                        for param, values in param_values.items()
+                    ]
+                ]
+            )
+        ], style={"width": "25%", "padding": "15px"}),
 
         html.Div([
-            html.Div(id="lat-left-plots", style={"flex": 1, "padding": "10px"}),
-            html.Div(id="lat-right-plots", style={"flex": 1, "padding": "10px"})
-        ], style={"display": "flex", "flexWrap": "wrap", "gap": "20px", "width": "67%", "padding": "15px"})
+            dcc.Loading(
+                id="loading-plots-lat",
+                type="circle",
+                children=[
+                    html.Div(id="lat-left-plots", style={"flex": 1, "padding": "10px"}),
+                    html.Div(id="lat-right-plots", style={"flex": 1, "padding": "10px"})
+                ]
+            )
+        ], style={"display": "flex", "flexWrap": "wrap", "gap": "20px", "width": "75%", "padding": "15px"})
 
     ], style={"display": "flex", "flexDirection": "row"})
 ])
+
 
 # === Callback
 @callback(
