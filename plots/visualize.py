@@ -84,25 +84,38 @@ def plot_spin_real(data):
     )
 
     return fig
+'''
 
-
-def plot_spinexchange_momentum(data):
-    spinexchange = 4 * data["corroffd"]
-    dist, exchange_k = take_borders(data["irrBZ"], spinexchange)
-
+def plot_nn_correlation_vs_t(t_values, correlation_AW, correlation_AT):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=dist, y=exchange_k, mode='lines'))
+
+    fig.add_trace(go.Scatter(
+        x=t_values, y=correlation_AW,
+        mode="markers+lines",
+        name="A=W",
+        marker_symbol="square",
+        marker_color="red"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=t_values, y=correlation_AT,
+        mode="markers+lines",
+        name="A≠T",
+        marker_symbol="triangle-up",
+        marker_color="blue"
+    ))
 
     fig.update_layout(
+        xaxis_title="t (eV)",
+        yaxis_title="⟨ δA δA' ⟩",
+        xaxis_type="log",     # <-- log x-axis
+        yaxis_type="linear",
         margin=dict(l=20, r=20, t=40, b=0),
-        xaxis_title="q along iBZ path",
-        yaxis_title="⟨ δn<sub>↑q</sub> δn<sub>↓q</sub> ⟩",
-        xaxis=dict(showgrid=True),
-        yaxis=dict(showgrid=True)
+        legend=dict(title="Type")
     )
 
     return fig
-
+'''
 
 def empty_plot(message=""):
     fig = go.Figure()
@@ -110,13 +123,6 @@ def empty_plot(message=""):
         title=message,
         xaxis={'visible': False},
         yaxis={'visible': False},
-        annotations=[{
-            'text': message,
-            'xref': 'paper',
-            'yref': 'paper',
-            'showarrow': False,
-            'font': {'size': 20}
-        }],
         plot_bgcolor="white",
         paper_bgcolor="white",
         margin=dict(l=0, r=0, t=50, b=0)
