@@ -4,19 +4,21 @@ from dash import dcc, html, Input, Output, callback, register_page
 from matplotlib.colors import LinearSegmentedColormap, to_hex
 
 from logic.data_loader import load_filtered_metadata
-
+from logic.inference import infer_ion_type 
 
 # === CONFIG ===
 shape = (101, 101)  # Shape of the energy maps
 model = "ss"
 
-# === Load filtered metadata 
+# === Load filtered metadata
 df, DATA_DIR = load_filtered_metadata(model)
 
-# === Prepare dropdowns (labels rounded, values untouched)
-param_names = ["N", "U", "J", "g", "lbd", "B"]
-param_values = { param: sorted(df[param].unique()) for param in param_names
-}
+# === Infer Ion Type Column
+df['ion_type'] = df.apply(infer_ion_type, axis=1)
+
+# === Prepare dropdowns
+param_names = ["U", "J", "g", "lbd", "B"]  # N is now FIXED per ion type
+param_values = {param: sorted(df[param].unique()) for param in param_names}
 
 # === Custom colormap
 colors = [
@@ -33,6 +35,16 @@ layout = html.Div([
     html.H2("Single-site Simulation Viewer"),
 
     html.Div([
+        html.Label("Select Ion Type:"),
+        dcc.Dropdown(
+            id="ion-type-dropdown",
+            options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
+            placeholder="Select an ion type",
+            clearable=False
+        )
+    ], style={"marginBottom": "20px"}),
+
+    html.Div([
         html.Div([
             html.H4("Parameters"),
             dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
@@ -45,17 +57,16 @@ layout = html.Div([
                             html.Label(param),
                             dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False)
                         ], style={"marginBottom": "20px"})
-                        for param, values in param_values.items()
+                        for param in param_names
                     ]
                 ]
             )
         ], style={"width": "25%", "padding": "15px"}),
 
-
         html.Div([
             dcc.Loading(
                 id="loading-energy-map",
-                type="circle",  
+                type="circle",
                 fullscreen=False,
                 children=[
                     dcc.Graph(id="energy-map", style={"height": "100%", "width": "100%"})
@@ -66,16 +77,18 @@ layout = html.Div([
     ], style={"display": "flex", "flexDirection": "row"})
 ])
 
-
 @callback(
     [Output(f"ss-dropdown-{param}", "options") for param in param_names] +
     [Output(f"ss-dropdown-{param}", "value") for param in param_names],
-    Input("ss-initializer", "data")
+    Input("ion-type-dropdown", "value")
 )
-def initialize_dropdowns(_):
-    df, _ = load_filtered_metadata(model, data_ext="")
+def initialize_dropdowns(selected_ion_type):
+    if not selected_ion_type:
+        return [[] for _ in param_names * 2]
 
-    param_values = {param: sorted(df[param].unique()) for param in param_names}
+    filtered_df = df[df['ion_type'] == selected_ion_type]
+
+    param_values = {param: sorted(filtered_df[param].unique()) for param in param_names}
 
     options = [
         [{"label": f"{v:.3f}", "value": v} for v in param_values[param]]
@@ -88,17 +101,25 @@ def initialize_dropdowns(_):
 
 @callback(
     Output("energy-map", "figure"),
+    [Input("ion-type-dropdown", "value")] +
     [Input(f"ss-dropdown-{param}", "value") for param in param_names]
 )
-def update_figure(N, U, J, g, lbd, B):
-    # Use np.isclose for float-safe comparison
-    match = df[
-        (df["N"] == N) &
-        np.isclose(df["U"], U) &
-        np.isclose(df["J"], J) &
-        np.isclose(df["g"], g) &
-        np.isclose(df["B"], B) &
-        np.isclose(df["lbd"], lbd)
+def update_figure(selected_ion_type, U, J, g, lbd, B):
+    if not selected_ion_type:
+        fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
+        fig.update_layout(title="❌ Select an ion type")
+        return fig
+
+    filtered_df = df[df['ion_type'] == selected_ion_type]
+
+    # Fix N automatically by ion type (it is always N=1 here)
+    match = filtered_df[
+        (filtered_df["N"] == 1) &
+        np.isclose(filtered_df["U"], U) &
+        np.isclose(filtered_df["J"], J) &
+        np.isclose(filtered_df["g"], g) &
+        np.isclose(filtered_df["B"], B) &
+        np.isclose(filtered_df["lbd"], lbd)
     ]
 
     if match.empty:
@@ -126,7 +147,7 @@ def update_figure(N, U, J, g, lbd, B):
         zmax=zmax
     )
     fig.update_layout(
-        title=f"Ground State Energy — N={N}, U={U}, J={J}, g={g}, B={B}, λ={lbd}",
+        title=f"Ground State Energy — Ion: {selected_ion_type}, U={U}, J={J}, g={g}, B={B}, λ={lbd}",
         transition_duration=300
     )
     return fig
