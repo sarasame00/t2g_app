@@ -32,37 +32,40 @@ plotly_colorscale = [(i / 254, to_hex(custom_cmap(i / 254))) for i in range(255)
 register_page(__name__, path='/ss', name='Single-site model')
 
 layout = html.Div([
-    html.H2("Single-site Simulation Viewer"),
+    html.H2("Single-site Model"),
 
     html.Div([
-        html.Label("Select Ion Type:"),
-        dcc.Dropdown(
-            id="ion-type-dropdown",
-            options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
-            placeholder="Select an ion type",
-            clearable=False
-        )
-    ], style={"marginBottom": "20px"}),
-
-    html.Div([
+        # Sidebar
         html.Div([
             html.H4("Parameters"),
+            html.Label("Select Ion Type:"),
+            dcc.Dropdown(
+                id="ion-type-dropdown-ss",
+                options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
+                placeholder="Select an ion type",
+                clearable=False,
+                style={"marginBottom": "25px", "width": "100%"}
+            ),
             dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
             dcc.Loading(
-                id="loading-dropdowns",
+                id="loading-dropdowns-ss",
                 type="dot",
                 children=[
-                    *[
-                        html.Div([
-                            html.Label(param),
-                            dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False)
-                        ], style={"marginBottom": "20px"})
-                        for param in param_names
-                    ]
+                    html.Div([
+                        html.Label(param),
+                        dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False, style={"width": "100%"})
+                    ], style={"marginBottom": "25px"})
+                    for param in param_names
                 ]
             )
-        ], style={"width": "25%", "padding": "15px"}),
+        ], style={
+            "flex": "0 0 250px",
+            "padding": "15px",
+            "boxSizing": "border-box",
+            "overflowY": "auto"
+        }),
 
+        # Plot Area
         html.Div([
             dcc.Loading(
                 id="loading-energy-map",
@@ -75,12 +78,17 @@ layout = html.Div([
         ], style={"width": "75%", "padding": "15px"})
 
     ], style={"display": "flex", "flexDirection": "row"})
-])
+], style={
+    "margin": "20px",   
+    "padding": "10px",   
+    "boxSizing": "border-box",
+    "overflow": "hidden" 
+})
 
 @callback(
     [Output(f"ss-dropdown-{param}", "options") for param in param_names] +
     [Output(f"ss-dropdown-{param}", "value") for param in param_names],
-    Input("ion-type-dropdown", "value")
+    Input("ion-type-dropdown-ss", "value")
 )
 def initialize_dropdowns(selected_ion_type):
     if not selected_ion_type:
@@ -101,7 +109,7 @@ def initialize_dropdowns(selected_ion_type):
 
 @callback(
     Output("energy-map", "figure"),
-    [Input("ion-type-dropdown", "value")] +
+    [Input("ion-type-dropdown-ss", "value")] +
     [Input(f"ss-dropdown-{param}", "value") for param in param_names]
 )
 def update_figure(selected_ion_type, U, J, g, lbd, B):

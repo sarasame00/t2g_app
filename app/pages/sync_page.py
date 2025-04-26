@@ -40,8 +40,11 @@ layout = html.Div([
     dcc.Store(id="download-progress", data={"index": 0}),
     dcc.Interval(id="clear-status-interval", interval=3000, n_intervals=0, disabled=True),
 
-
-])
+], style={
+    "margin": "20px",    
+    "padding": "10px",   
+    "boxSizing": "border-box",
+})
 
 @callback(
     Output("table-container", "children"),
