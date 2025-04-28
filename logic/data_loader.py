@@ -10,8 +10,6 @@ from sync.gdrive_sync import download_metadata_csv
 def load_simulation_metadata(model: str):
     assert model in ["lat", "ss"], "Model must be 'lat' or 'ss'"
 
-    print(f"🧠 Loading metadata for model: {model}")
-    print(f"📥 Downloading metadata CSV...")
     download_metadata_csv(model)
 
     file_path = LOCAL_DATA_FOLDER / f"{model}_data" / f"simulated_values_{model}.csv"
