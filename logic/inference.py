@@ -1,5 +1,6 @@
-def in_range(value, low, high):
-    return low <= value <= high
+def in_range(value, low, high, tol=1e-4):
+    return (low - tol) <= value <= (high + tol)
+
 
 def infer_ion_type(row):
     rules = {
