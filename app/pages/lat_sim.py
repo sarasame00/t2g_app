@@ -127,7 +127,8 @@ def initialize_dropdowns(selected_ion_type):
         for param in param_names
     ]
 
-    default_values = [param_values[param][0] for param in param_names]
+    default_values = [param_values[param][0] if param_values[param] else None for param in param_names]
+
 
     return options + default_values
 
@@ -139,8 +140,8 @@ def initialize_dropdowns(selected_ion_type):
     [Input("ion-type-dropdown-lat", "value")] + [Input(f"dropdown-{param}", "value") for param in param_names]
 )
 def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
-    if not selected_ion_type:
-        empty_fig = visual.empty_plot(message="❌ Select an ion type")
+    if not selected_ion_type or None in (U, J, g, t, lbd):
+        empty_fig = visual.empty_plot(message="❌ Please select all parameters")
         return empty_fig, empty_fig, empty_fig, empty_fig
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
