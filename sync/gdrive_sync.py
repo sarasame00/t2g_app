@@ -1,9 +1,13 @@
+# gdrive_sync.py
 import os
 from pathlib import Path
+import io
+import threading
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-import io
+
 from sync.config import SERVICE_ACCOUNT_FILE, LOCAL_DATA_FOLDER, GDRIVE_FOLDER_IDS
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
@@ -47,7 +51,7 @@ def download_metadata_csv(model):
     if metadata_filename not in file_lookup:
         raise FileNotFoundError(f"{metadata_filename} not found in Google Drive.")
 
-    print(f"📥 Downloading metadata: {metadata_filename}")
+    print(f"Downloading metadata: {metadata_filename}")
     request = service.files().get_media(fileId=file_lookup[metadata_filename])
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -60,40 +64,52 @@ def download_metadata_csv(model):
 
     return local_path
 
-def download_files_from_drive(filenames, model):
+
+_download_progress = ""
+_download_thread = None
+
+def download_specific_files(model_name, filenames):
+    global _download_progress
+
     service = get_drive_service()
-    folder_id = GDRIVE_FOLDER_IDS[model]
+    folder_id = GDRIVE_FOLDER_IDS[model_name]
 
-    # List all files in the GDrive model folder
-    all_drive_files = list_files_in_folder(service, folder_id)
-
-    # Create a lookup dictionary for fast access
-    drive_files_dict = {f["name"]: f["id"] for f in all_drive_files}
-
-    local_dir = LOCAL_DATA_FOLDER / f"{model}_data"
+    local_dir = LOCAL_DATA_FOLDER / f"{model_name}_data"
     local_dir.mkdir(parents=True, exist_ok=True)
 
-    downloaded_count = 0
+    drive_files = list_files_in_folder(service, folder_id)
+    drive_lookup = {f['name']: f['id'] for f in drive_files}
 
-    for filename in filenames:
-        if filename not in drive_files_dict:
-            print(f"❌ File not found in Drive: {filename}")
-            continue
+    total_files = len(filenames)
 
-        file_id = drive_files_dict[filename]
+    for idx, filename in enumerate(filenames, start=1):
         local_path = local_dir / filename
 
         if local_path.exists():
-            print(f"✅ Already downloaded: {filename}")
+            _download_progress = f"✅ [{idx}/{total_files}] {filename} already exists"
             continue
 
-        print(f"⬇️ Downloading {filename} ({downloaded_count+1}/{len(filenames)})")
+        if filename not in drive_lookup:
+            _download_progress = f"❌ [{idx}/{total_files}] {filename} not found in Drive"
+            continue
+
+        _download_progress = f"⬇️ [{idx}/{total_files}] Downloading {filename}"
+
+        file_id = drive_lookup[filename]
         request = service.files().get_media(fileId=file_id)
         with open(local_path, "wb") as f:
             downloader = MediaIoBaseDownload(f, request)
             done = False
             while not done:
                 status, done = downloader.next_chunk()
-        downloaded_count += 1
 
-    print(f"✅ Download complete. {downloaded_count} new file(s) downloaded.")
+    _download_progress = "✅ Download finished."
+
+def start_download_thread(model_name, filenames):
+    global _download_thread
+    _download_thread = threading.Thread(target=download_specific_files, args=(model_name, filenames))
+    _download_thread.start()
+
+def get_progress_log():
+    global _download_progress
+    return _download_progress
