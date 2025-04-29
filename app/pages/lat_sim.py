@@ -159,7 +159,7 @@ def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
         empty_fig = visual.empty_plot(message="❌ No matching simulation found")
         return empty_fig, empty_fig, empty_fig, empty_fig
 
-    filename = match.iloc[0]["filename"]
+    filename = match.iloc[-1]["filename"]
     file_path = DATA_DIR / filename
 
     if not file_path.exists():

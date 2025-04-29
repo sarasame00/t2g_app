@@ -199,7 +199,7 @@ def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, 
         fig.update_layout(title="❌ No matching simulation found")
         return fig
 
-    filename = match.iloc[0]["filename"]
+    filename = match.iloc[-1]["filename"]
     file_path = DATA_DIR / filename
 
     try:

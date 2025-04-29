@@ -248,7 +248,7 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
         if match.empty:
             continue
 
-        filename = match.iloc[0]["filename"]
+        filename = match.iloc[-1]["filename"]
         file_path = DATA_DIR / filename
 
         if not file_path.exists():
