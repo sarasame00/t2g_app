@@ -40,6 +40,7 @@ layout = html.Div([
 
     html.Div([
         # Sidebar
+        dcc.Store(id="fixed-axes-store", storage_type="memory"),
         html.Div([
             html.Label("Axis Mode:"),
             dcc.RadioItems(
@@ -50,6 +51,7 @@ layout = html.Div([
                 ],
                 value="auto",
                 inline=True,
+                labelStyle={"marginRight": "20px"},
                 style={"marginBottom": "20px"}
             ),
             html.H4("Parameters"),
@@ -150,6 +152,63 @@ def initialize_dropdowns(selected_ion_type):
     return options + default_values
 
 @callback(
+    Output("fixed-axes-store", "data"),
+    Input("ion-type-dropdown-lat-t", "value")
+)
+def compute_fixed_axes(selected_ion_type):
+    if not selected_ion_type:
+        return {}
+
+    filtered_df = df[df['ion_type'] == selected_ion_type]
+
+    data_list = []
+
+    for idx, row in filtered_df.iterrows():
+        filename = row["filename"]
+        file_path = DATA_DIR / filename
+
+        if not file_path.exists():
+            continue
+
+        try:
+            data = load_correl_data(file_path)
+        except Exception:
+            continue
+
+        data_list.append(data)
+
+    if not data_list:
+        return {}
+
+    # Compute min/max for momentum plots
+    momentum_min = []
+    momentum_max = []
+
+    for data in data_list:
+        orbcharge = 4 * (data["corrdiag"] - data["corroffd"])
+        spincharge = 2 * (3 * data["corrdiag"] + data["corroffd"])
+
+        dist, orbcharge_k = take_borders(data["irrBZ"], orbcharge)
+        dist, spin_k = take_borders(data["irrBZ"], spincharge)
+
+        momentum_min.append(np.min(orbcharge_k))
+        momentum_min.append(np.min(spin_k))
+        momentum_max.append(np.max(orbcharge_k))
+        momentum_max.append(np.max(spin_k))
+
+    margin_factor = 0.05  # 5% margin
+    momentum_range = [min(momentum_min), max(momentum_max)]
+    momentum_margin = (momentum_range[1] - momentum_range[0]) * margin_factor
+
+    fixed_ranges = {
+        "momentum": [momentum_range[0] - momentum_margin, momentum_range[1] + momentum_margin],
+        "orbital_real": [-0.15, 0.15],
+        "spin_real": [-0.15, 0.15],
+    }
+
+    return fixed_ranges
+
+@callback(
     Output("t-plot-1", "figure"),
     Output("t-plot-2", "figure"),
     Output("t-plot-3", "figure"),
@@ -158,9 +217,10 @@ def initialize_dropdowns(selected_ion_type):
     Output("legend-div", "children"),
     Input("ion-type-dropdown-lat-t", "value"),
     Input("axis-mode-toggle", "value"),
+    Input("fixed-axes-store", "data"),  # 🆕 New input to get fixed axes
     *[Input(f"t-dropdown-{param}", "value") for param in param_names]
 )
-def update_lat_plots(selected_ion_type, axis_mode, U, J, g, t_list, lbd):
+def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, lbd):
     if not selected_ion_type:
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
@@ -204,49 +264,23 @@ def update_lat_plots(selected_ion_type, axis_mode, U, J, g, t_list, lbd):
         empty_fig = visual.empty_plot(message="❌ No matching data")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
 
-    # === Compute ranges if axis_mode is fixed ===
-    momentum_min = []
-    momentum_max = []
-
-    for data in data_list:
-        orbcharge = 4 * (data["corrdiag"] - data["corroffd"])
-        spincharge = 2 * (3 * data["corrdiag"] + data["corroffd"])
-
-        dist, orbcharge_k = take_borders(data["irrBZ"], orbcharge)
-        dist, spin_k = take_borders(data["irrBZ"], spincharge)
-        x_orb, orb_r = antifourier(data["k_sz"], data["irrBZ"], orbcharge)
-        x_spin, spin_r = antifourier(data["k_sz"], data["irrBZ"], spincharge)
-
-        momentum_min.append(np.min(orbcharge_k))
-        momentum_min.append(np.min(spin_k))
-        momentum_max.append(np.max(orbcharge_k))
-        momentum_max.append(np.max(spin_k))
-
-    margin_factor = 0.05  # 5% margin
-
-    momentum_range = [min(momentum_min), max(momentum_max)]
-    momentum_margin = (momentum_range[1] - momentum_range[0]) * margin_factor
-
-    fixed_ranges = {
-        "momentum": [momentum_range[0] - momentum_margin, momentum_range[1] + momentum_margin],
-        "orbital_real": [-0.15, 0.15],
-        "spin_real": [-0.15, 0.15],
-    }
-
+    # === Read fixed ranges from Store ===
+    momentum_fixed = fixed_axes.get("momentum", None) if fixed_axes else None
+    orbital_real_fixed = fixed_axes.get("orbital_real", None) if fixed_axes else None
+    spin_real_fixed = fixed_axes.get("spin_real", None) if fixed_axes else None
 
     fig_orbital_momentum = visual.plot_orbital_momentum(
-    data_list, t_values, fixed_range=fixed_ranges["momentum"] if axis_mode == "fixed" else None
+        data_list, t_values, fixed_range=momentum_fixed if axis_mode == "fixed" else None
     )
     fig_spin_momentum = visual.plot_spin_momentum(
-        data_list, t_values, fixed_range=fixed_ranges["momentum"] if axis_mode == "fixed" else None
+        data_list, t_values, fixed_range=momentum_fixed if axis_mode == "fixed" else None
     )
     fig_orbital_real = visual.plot_orbital_real(
-        data_list, t_values, fixed_range=fixed_ranges["orbital_real"] if axis_mode == "fixed" else None
+        data_list, t_values, fixed_range=orbital_real_fixed if axis_mode == "fixed" else None
     )
     fig_spin_real = visual.plot_spin_real(
-        data_list, t_values, fixed_range=fixed_ranges["spin_real"] if axis_mode == "fixed" else None
+        data_list, t_values, fixed_range=spin_real_fixed if axis_mode == "fixed" else None
     )
-
 
     fig_nearest_neighbor = visual.plot_nn_correlation_vs_t(data_list, t_values)
     legend_html = visual.build_custom_legend(t_values)
