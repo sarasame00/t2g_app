@@ -45,7 +45,20 @@ layout = html.Div([
 
     html.Div([
         # Sidebar
+        dcc.Store(id="ss-fixed-colorbar", storage_type="memory"),
         html.Div([
+            html.Label("Colorbar Mode:"),
+            dcc.RadioItems(
+                id="colorbar-mode-toggle",
+                options=[
+                    {"label": "Auto", "value": "auto"},
+                    {"label": "Fixed", "value": "fixed"},
+                ],
+                value="auto",
+                inline=True,
+                labelStyle={"marginRight": "15px"},
+                style={"marginBottom": "20px"}
+            ),
             html.H4("Parameters"),
             html.Label("Select Ion Type:"),
             dcc.Dropdown(
@@ -118,11 +131,43 @@ def initialize_dropdowns(selected_ion_type):
     return options + default_values
 
 @callback(
-    Output("energy-map", "figure"),
-    [Input("ion-type-dropdown-ss", "value")] +
-    [Input(f"ss-dropdown-{param}", "value") for param in param_names]
+    Output("ss-fixed-colorbar", "data"),
+    Input("ion-type-dropdown-ss", "value")
 )
-def update_figure(selected_ion_type, U, J, g, lbd, B):
+def compute_fixed_zrange(selected_ion_type):
+    if not selected_ion_type:
+        return {}
+
+    filtered_df = df[df['ion_type'] == selected_ion_type]
+    zmins = []
+    zmaxs = []
+
+    for _, row in filtered_df.iterrows():
+        file_path = DATA_DIR / row["filename"]
+        if not file_path.exists():
+            continue
+        try:
+            data = np.loadtxt(file_path)
+            emap = data[:, 2].reshape(shape)
+            zmins.append(np.min(emap))
+            zmaxs.append(np.max(emap))
+        except Exception:
+            continue
+
+    if not zmins or not zmaxs:
+        return {}
+
+    return {"zmin": min(zmins), "zmax": max(zmaxs)}
+
+@callback(
+    Output("energy-map", "figure"),
+    Input("ion-type-dropdown-ss", "value"),
+    Input("colorbar-mode-toggle", "value"),        
+    Input("ss-fixed-colorbar", "data"),            
+    *[Input(f"ss-dropdown-{param}", "value") for param in param_names]
+)
+
+def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, B):
     if not selected_ion_type:
         fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
         fig.update_layout(title="❌ Select an ion type")
@@ -151,8 +196,14 @@ def update_figure(selected_ion_type, U, J, g, lbd, B):
     try:
         data = np.loadtxt(file_path)
         emap = data[:, 2].reshape(shape)
-        zmin = np.min(emap)
-        zmax = zmin + (np.max(emap) - zmin) * 1.0
+        if colorbar_mode == "fixed" and fixed_zrange:
+            zmin = fixed_zrange["zmin"]
+            zmax = fixed_zrange["zmax"]
+        else:
+            zmin = np.min(emap)
+            zmax = zmin + (np.max(emap) - zmin) * 1.0
+
+        
     except Exception as e:
         print(f"❌ Error loading or reshaping data: {e}")
         emap = np.zeros(shape)
