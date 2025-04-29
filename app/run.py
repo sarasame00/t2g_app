@@ -7,7 +7,12 @@ import dash_bootstrap_components as dbc
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 # Initialize the Dash app with Bootstrap theme for styling
-app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.FLATLY])
+app = Dash(
+    __name__,
+    use_pages=True,
+    external_stylesheets=[dbc.themes.FLATLY],
+    serve_locally=True  # ✅ Ensures local JS/CSS
+)
 
 # Customize the default HTML template to remove margins, paddings, and hide scrollbars
 app.index_string = '''
@@ -90,6 +95,10 @@ def update_navbar(pathname):
 # Run the Dash app (only if this file is executed directly)
 if __name__ == "__main__":
     try:
-        app.run(debug=True)
+        app.run(
+        host="127.0.0.1",
+        port=8050,     # Dash server runs here
+        debug=False,
+    )
     except Exception as e:
         print(f"Failed to start the app: {e}")

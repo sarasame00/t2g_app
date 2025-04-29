@@ -24,20 +24,25 @@ def list_files_in_folder(service, folder_id):
     files = []
     page_token = None
 
-    while True:
-        response = service.files().list(
-            q=query,
-            spaces='drive',
-            fields='nextPageToken, files(id, name)',
-            pageToken=page_token
-        ).execute()
+    try:
+        while True:
+            response = service.files().list(
+                q=query,
+                spaces='drive',
+                fields='nextPageToken, files(id, name)',
+                pageToken=page_token
+            ).execute()
 
-        files.extend(response.get('files', []))
-        page_token = response.get('nextPageToken', None)
-        if page_token is None:
-            break
+            files.extend(response.get('files', []))
+            page_token = response.get('nextPageToken', None)
+            if page_token is None:
+                break
+    except Exception as e:
+        print(f"❌ Google Drive error while listing folder: {e}")
+        raise ConnectionError("Google Drive service is currently unavailable.")
 
     return files
+
 
 # === Download Metadata CSV ===
 def download_metadata_csv(model):
@@ -49,7 +54,12 @@ def download_metadata_csv(model):
     metadata_filename = f"simulated_values_{model}.csv"
     local_path = LOCAL_DATA_FOLDER / f"{model}_data" / metadata_filename
 
-    all_drive_files = list_files_in_folder(service, folder_id)
+    try:
+        all_drive_files = list_files_in_folder(service, folder_id)
+    except ConnectionError as e:
+        print(e)
+        return  
+
     file_lookup = {f["name"]: f["id"] for f in all_drive_files}
 
     if metadata_filename not in file_lookup:
