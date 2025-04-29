@@ -1,13 +1,15 @@
 from dash import dcc, html, Input, Output, callback, register_page
+
 import pandas as pd
 import numpy as np
+
 from logic.data_loader import load_filtered_metadata, load_correl_data
 import plots.visualize as visual
 from logic.inference import infer_ion_type
 import dash_bootstrap_components as dbc
-from logic.sym_utils import take_borders, antifourier
+from logic.sym_utils import take_borders
 
-# === CONFIG ===
+# === CONFIGURATION ===
 model = "lat"
 
 # === Load metadata
@@ -16,11 +18,11 @@ df, DATA_DIR = load_filtered_metadata(model, data_ext=".hdf5")
 # === Infer ion type for each row
 df['ion_type'] = df.apply(infer_ion_type, axis=1)
 
-# === Parameter names (no N)
+# === Define parameter names
 float_params = ["U", "J", "g", "t", "lbd"]
 param_names = float_params
 
-# Map internal param names to display labels
+# Map internal parameter names to human-readable labels
 param_labels = {
     "U": "U (eV)",
     "J": "J (eV)",
@@ -29,19 +31,19 @@ param_labels = {
     "lbd": "ξ (eV)"
 }
 
+# === Register Page with Dash Pages system
+register_page(__name__, path='/lat_t', name='Lattice model')
 
-
-# === Page registration
-register_page(__name__, path='/lat_t', name='Lattice model (function of t) ')
-
-# === Layout
+# === Layout of the page
 layout = html.Div([
     html.H2("Lattice Model"),
 
     html.Div([
-        # Sidebar
-        dcc.Store(id="fixed-axes-store", storage_type="memory"),
+        # === Sidebar ===
+        dcc.Store(id="fixed-axes-store", storage_type="memory"),  # Store for fixed axes
+
         html.Div([
+            # Axis mode toggle (Auto / Fixed)
             html.Label("Axis Mode:"),
             dcc.RadioItems(
                 id="axis-mode-toggle",
@@ -55,6 +57,8 @@ layout = html.Div([
                 style={"marginBottom": "20px"}
             ),
             html.H4("Parameters"),
+
+            # Ion type selector
             html.Label("Select Ion Type:"),
             dcc.Dropdown(
                 id="ion-type-dropdown-lat-t",
@@ -64,7 +68,11 @@ layout = html.Div([
                 clearable=False,
                 style={"marginBottom": "25px", "width": "100%"}
             ),
+
+            # Store for initializing dropdowns
             dcc.Store(id="lat-t-initializer", data={}, storage_type='memory'),
+
+            # Parameter dropdowns
             dcc.Loading(
                 id="loading-dropdowns-lat-t",
                 type="dot",
@@ -83,22 +91,18 @@ layout = html.Div([
             "overflowY": "auto"
         }),
 
-        # Plot Area
+        # === Plot Area ===
         html.Div([
             dbc.Container([
-                # First row: 3 plots
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-1", style={"height": "35vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-3", style={"height": "35vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-5", style={"height": "35vh"}), width=4),
                 ]),
-
-                # Second row: 2 plots (leave third empty)
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "35vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "35vh"}), width=4),
                     dbc.Col(html.Div(id="legend-div", style={"padding": "10px", "fontSize": "14px", "lineHeight": "1.6"}), width=4)
-
                 ]),
             ], fluid=True)
         ], style={
@@ -106,36 +110,33 @@ layout = html.Div([
             "padding": "15px",
             "boxSizing": "border-box"
         })
-    ],  
+    ],
     style={
         "display": "flex",
         "flexDirection": "row",
         "overflow": "hidden"
     })
 ], style={
-    "margin": "20px",   
-    "padding": "10px",  
+    "margin": "20px",
+    "padding": "10px",
     "boxSizing": "border-box",
-    "overflow": "hidden"  
+    "overflow": "hidden"
 })
 
+# === CALLBACKS ===
 
-
-
-
-# === Callbacks
-
+# Initialize parameter dropdowns based on selected ion type
 @callback(
     [Output(f"t-dropdown-{param}", "options") for param in param_names] +
     [Output(f"t-dropdown-{param}", "value") for param in param_names],
     Input("ion-type-dropdown-lat-t", "value")
 )
 def initialize_dropdowns(selected_ion_type):
+    """Initialize dropdown options and default values."""
     if not selected_ion_type:
         return [[] for _ in param_names * 2]
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
-
     param_values = {param: sorted(filtered_df[param].unique()) for param in param_names}
 
     options = [
@@ -144,25 +145,25 @@ def initialize_dropdowns(selected_ion_type):
     ]
 
     default_values = [
-    param_values[param][0] if param != "t" else [param_values[param][0]]
-    for param in param_names
-]
-
+        param_values[param][0] if param != "t" else [param_values[param][0]]
+        for param in param_names
+    ]
 
     return options + default_values
 
+# Compute fixed axes ranges for plots
 @callback(
     Output("fixed-axes-store", "data"),
     Input("ion-type-dropdown-lat-t", "value")
 )
 def compute_fixed_axes(selected_ion_type):
+    """Compute global fixed axis ranges."""
     if not selected_ion_type:
         return {}
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
 
     data_list = []
-
     for idx, row in filtered_df.iterrows():
         filename = row["filename"]
         file_path = DATA_DIR / filename
@@ -180,10 +181,8 @@ def compute_fixed_axes(selected_ion_type):
     if not data_list:
         return {}
 
-    # Compute min/max for momentum plots
-    momentum_min = []
-    momentum_max = []
-
+    # Extract min/max from correlation functions
+    momentum_min, momentum_max = [], []
     for data in data_list:
         orbcharge = 4 * (data["corrdiag"] - data["corroffd"])
         spincharge = 2 * (3 * data["corrdiag"] + data["corroffd"])
@@ -196,7 +195,8 @@ def compute_fixed_axes(selected_ion_type):
         momentum_max.append(np.max(orbcharge_k))
         momentum_max.append(np.max(spin_k))
 
-    margin_factor = 0.05  # 5% margin
+    # Add margin
+    margin_factor = 0.05
     momentum_range = [min(momentum_min), max(momentum_max)]
     momentum_margin = (momentum_range[1] - momentum_range[0]) * margin_factor
 
@@ -208,6 +208,7 @@ def compute_fixed_axes(selected_ion_type):
 
     return fixed_ranges
 
+# Update plots when user changes parameters
 @callback(
     Output("t-plot-1", "figure"),
     Output("t-plot-2", "figure"),
@@ -217,19 +218,20 @@ def compute_fixed_axes(selected_ion_type):
     Output("legend-div", "children"),
     Input("ion-type-dropdown-lat-t", "value"),
     Input("axis-mode-toggle", "value"),
-    Input("fixed-axes-store", "data"),  # 🆕 New input to get fixed axes
+    Input("fixed-axes-store", "data"),
     *[Input(f"t-dropdown-{param}", "value") for param in param_names]
 )
 def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, lbd):
+    """Update all plots according to user selection."""
     if not selected_ion_type:
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
 
+    # Defensive: Ensure t_list is a list
     if not isinstance(t_list, list):
         t_list = [t_list]
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
-
     data_list = []
     t_values = []
 
@@ -264,7 +266,7 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
         empty_fig = visual.empty_plot(message="❌ No matching data")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
 
-    # === Read fixed ranges from Store ===
+    # === Handle fixed axis ranges if enabled ===
     momentum_fixed = fixed_axes.get("momentum", None) if fixed_axes else None
     orbital_real_fixed = fixed_axes.get("orbital_real", None) if fixed_axes else None
     spin_real_fixed = fixed_axes.get("spin_real", None) if fixed_axes else None
@@ -281,7 +283,6 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
     fig_spin_real = visual.plot_spin_real(
         data_list, t_values, fixed_range=spin_real_fixed if axis_mode == "fixed" else None
     )
-
     fig_nearest_neighbor = visual.plot_nn_correlation_vs_t(data_list, t_values)
     legend_html = visual.build_custom_legend(t_values)
 

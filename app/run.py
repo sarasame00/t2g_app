@@ -3,13 +3,13 @@ import sys
 from pathlib import Path
 import dash_bootstrap_components as dbc
 
-# Add project root to sys.path
+# Add project root to sys.path so that imports from parent directory work
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-# Create Dash app
+# Initialize the Dash app with Bootstrap theme for styling
 app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.FLATLY])
 
-# Fix body margins and scrolling
+# Customize the default HTML template to remove margins, paddings, and hide scrollbars
 app.index_string = '''
 <!DOCTYPE html>
 <html>
@@ -38,13 +38,11 @@ app.index_string = '''
 </html>
 '''
 
-# Layout
+# Define the overall layout of the app
 app.layout = html.Div([
-    dcc.Location(id="url"),  # Track current page
-
-    html.Div(id="navbar"),   # Navbar will be built dynamically
-
-    page_container           # Page content
+    dcc.Location(id="url"),  # Component to track the current page URL
+    html.Div(id="navbar"),   # Placeholder for the navigation bar (will be updated dynamically)
+    page_container           # Placeholder for page-specific content loaded by Dash Pages
 ], style={
     "margin": "20px",
     "padding": "10px",
@@ -53,34 +51,45 @@ app.layout = html.Div([
     "overflow": "hidden"
 })
 
-# Callback to update navigation menu
+# Define callback to update the navigation bar based on the current page
 @app.callback(
-    Output("navbar", "children"),
-    Input("url", "pathname")
+    Output("navbar", "children"),  # Output: Replace the children of the navbar div
+    Input("url", "pathname")        # Input: Trigger when URL path changes
 )
 def update_navbar(pathname):
+    """Update the navigation bar links based on the current page path."""
     links = []
 
+    # Handle case where pathname is None
+    if pathname is None:
+        pathname = "/"  # Default to home page if no path detected
+
+    # Helper function to create navigation links with dynamic styling
     def make_link(name, href):
-        is_active = pathname == href
+        is_active = pathname == href  # Determine if link is the current page
         return dcc.Link(
             name,
             href=href,
             style={
                 "marginRight": "20px",
-                "fontSize": "20px",              # <-- Bigger font
-                "fontWeight": "bold" if is_active else "normal",  # <-- Bold if active
-                "textDecoration": "underline" if is_active else "none",  # <-- Underline if active
-                "color": "black" if is_active else "grey",  # <-- Color based on active
+                "fontSize": "20px",              
+                "fontWeight": "bold" if is_active else "normal",
+                "textDecoration": "underline" if is_active else "none",
+                "color": "black" if is_active else "grey",
             }
         )
 
+    # Create links for different pages
     links.append(make_link("Single-site model", "/ss"))
     links.append(make_link("Lattice model", "/lat_t"))
     links.append(make_link("Sync Page", "/sync"))
 
+    # Return all links wrapped inside a Div
     return html.Div(links, style={"marginBottom": "30px"})
 
-# Run app
+# Run the Dash app (only if this file is executed directly)
 if __name__ == "__main__":
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    except Exception as e:
+        print(f"Failed to start the app: {e}")

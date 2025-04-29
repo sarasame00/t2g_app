@@ -1,8 +1,43 @@
+# === Helper Function: Range Check ===
 def in_range(value, low, high, tol=1e-4):
+    """
+    Check if a value is within [low, high], allowing for a small tolerance.
+
+    Parameters:
+    ----------
+    value : float
+        The value to check.
+    low : float
+        Lower bound of range.
+    high : float
+        Upper bound of range.
+    tol : float
+        Numerical tolerance to allow slight deviations.
+
+    Returns:
+    -------
+    bool
+        True if value is within [low - tol, high + tol], False otherwise.
+    """
     return (low - tol) <= value <= (high + tol)
 
-
+# === Main Function: Ion Type Inference ===
 def infer_ion_type(row):
+    """
+    Infer the type of ion (3d, 4d, 5d) based on simulation parameters.
+
+    Parameters:
+    ----------
+    row : dict-like or pandas Series
+        Dictionary of parameter values for a given simulation.
+
+    Returns:
+    -------
+    str
+        Inferred ion type ("3d_d1", "4d_d1", "5d_d1"), or "unknown" if no match.
+    """
+
+    # Define classification rules: expected ranges for each ion type
     rules = {
         "3d_d1": {
             "N": (1, 1),
@@ -33,15 +68,18 @@ def infer_ion_type(row):
         }
     }
 
+    # Loop over all ion types and check if parameters match
     for ion, ranges in rules.items():
         match = True
         for param, (low, high) in ranges.items():
             if param not in row:
-                continue  # Skip if param not in data
+                continue  # Skip missing parameters (assume neutral)
             if not in_range(row[param], low, high):
                 match = False
                 break
+
         if match:
             return ion
 
+    # If no rule matches, classify as unknown
     return "unknown"

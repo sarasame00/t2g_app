@@ -6,21 +6,21 @@ from matplotlib.colors import LinearSegmentedColormap, to_hex
 from logic.data_loader import load_filtered_metadata
 from logic.inference import infer_ion_type 
 
-# === CONFIG ===
+# === CONFIGURATION ===
 shape = (101, 101)  # Shape of the energy maps
-model = "ss"
+model = "ss"        # Model type (single-site)
 
 # === Load filtered metadata
 df, DATA_DIR = load_filtered_metadata(model)
 
-# === Infer Ion Type Column
+# === Infer ion type column based on metadata
 df['ion_type'] = df.apply(infer_ion_type, axis=1)
 
-# === Prepare dropdowns
-param_names = ["U", "J", "g", "lbd", "B"]  # N is now FIXED per ion type
+# === Prepare dropdowns: collect available parameter values
+param_names = ["U", "J", "g", "lbd", "B"]  # 'N' is fixed per ion type
 param_values = {param: sorted(df[param].unique()) for param in param_names}
 
-# Map internal param names to display labels
+# Map internal parameter names to human-readable labels
 param_labels = {
     "U": "U (eV)",
     "J": "J (eV)",
@@ -29,7 +29,7 @@ param_labels = {
     "lbd": "ξ (eV)"
 }
 
-# === Custom colormap
+# === Custom color map for energy plots
 colors = [
     (0.0, "black"), (0.15, "yellow"), (0.25, "orange"), (0.35, "red"),
     (0.5, "magenta"), (0.65, "blue"), (0.85, "cyan"), (1.0, "white")
@@ -40,12 +40,14 @@ plotly_colorscale = [(i / 254, to_hex(custom_cmap(i / 254))) for i in range(255)
 # === Dash Page Setup
 register_page(__name__, path='/ss', name='Single-site model')
 
+# === Layout ===
 layout = html.Div([
     html.H2("Single-site Model"),
 
     html.Div([
-        # Sidebar
+        # === Sidebar (Controls) ===
         dcc.Store(id="ss-fixed-colorbar", storage_type="memory"),
+
         html.Div([
             html.Label("Colorbar Mode:"),
             dcc.RadioItems(
@@ -69,7 +71,10 @@ layout = html.Div([
                 clearable=False,
                 style={"marginBottom": "25px", "width": "100%"}
             ),
+
+            # Dynamic parameter dropdowns
             dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
+
             dcc.Loading(
                 id="loading-dropdowns-ss",
                 type="dot",
@@ -88,7 +93,7 @@ layout = html.Div([
             "overflowY": "auto"
         }),
 
-        # Plot Area
+        # === Plot Area (Energy Map) ===
         html.Div([
             dcc.Loading(
                 id="loading-energy-map",
@@ -102,11 +107,13 @@ layout = html.Div([
 
     ], style={"display": "flex", "flexDirection": "row"})
 ], style={
-    "margin": "20px",   
-    "padding": "10px",   
+    "margin": "20px",
+    "padding": "10px",
     "boxSizing": "border-box",
-    "overflow": "hidden" 
+    "overflow": "hidden"
 })
+
+# === CALLBACKS ===
 
 @callback(
     [Output(f"ss-dropdown-{param}", "options") for param in param_names] +
@@ -114,11 +121,11 @@ layout = html.Div([
     Input("ion-type-dropdown-ss", "value")
 )
 def initialize_dropdowns(selected_ion_type):
+    """Initialize parameter dropdowns based on selected ion type."""
     if not selected_ion_type:
         return [[] for _ in param_names * 2]
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
-
     param_values = {param: sorted(filtered_df[param].unique()) for param in param_names}
 
     options = [
@@ -135,6 +142,7 @@ def initialize_dropdowns(selected_ion_type):
     Input("ion-type-dropdown-ss", "value")
 )
 def compute_fixed_zrange(selected_ion_type):
+    """Compute fixed colorbar z-range for selected ion type."""
     if not selected_ion_type:
         return {}
 
@@ -149,9 +157,8 @@ def compute_fixed_zrange(selected_ion_type):
         try:
             data = np.loadtxt(file_path)
             if data.size == 0:
-                continue  # skip empty files safely
+                continue  # Skip empty files safely
             emap = data[:, 2].reshape(shape)
-
             zmins.append(np.min(emap))
             zmaxs.append(np.max(emap))
         except Exception:
@@ -166,11 +173,11 @@ def compute_fixed_zrange(selected_ion_type):
     Output("energy-map", "figure"),
     Input("ion-type-dropdown-ss", "value"),
     Input("colorbar-mode-toggle", "value"),        
-    Input("ss-fixed-colorbar", "data"),            
+    Input("ss-fixed-colorbar", "data"),
     *[Input(f"ss-dropdown-{param}", "value") for param in param_names]
 )
-
 def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, B):
+    """Update energy map figure based on selected parameters."""
     if not selected_ion_type:
         fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
         fig.update_layout(title="❌ Select an ion type")
@@ -178,7 +185,6 @@ def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, 
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
 
-    # Fix N automatically by ion type (it is always N=1 here)
     match = filtered_df[
         (filtered_df["N"] == 1) &
         np.isclose(filtered_df["U"], U) &
@@ -205,8 +211,6 @@ def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, 
         else:
             zmin = np.min(emap)
             zmax = zmin + (np.max(emap) - zmin) * 1.0
-
-        
     except Exception as e:
         print(f"❌ Error loading or reshaping data: {e}")
         emap = np.zeros(shape)
