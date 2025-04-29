@@ -40,60 +40,12 @@ plotly_colorscale = [(i / 254, to_hex(custom_cmap(i / 254))) for i in range(255)
 # === Dash Page Setup
 register_page(__name__, path='/', name='Single-site model')
 
-# === Layout ===
+
 layout = html.Div([
-    html.H2("Single-site Model"),
-
+    # Move this into the shifted main content block
     html.Div([
-        # === Sidebar (Controls) ===
-        dcc.Store(id="ss-fixed-colorbar", storage_type="memory"),
+        html.H2("Single-site Model"),
 
-        html.Div([
-            html.Label("Colorbar Mode:"),
-            dcc.RadioItems(
-                id="colorbar-mode-toggle",
-                options=[
-                    {"label": "Auto", "value": "auto"},
-                    {"label": "Fixed", "value": "fixed"},
-                ],
-                value="auto",
-                inline=True,
-                labelStyle={"marginRight": "15px"},
-                style={"marginBottom": "20px"}
-            ),
-            html.H4("Parameters"),
-            html.Label("Select Ion Type:"),
-            dcc.Dropdown(
-                id="ion-type-dropdown-ss",
-                options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
-                placeholder="Select an ion type",
-                value="3d_d1",
-                clearable=False,
-                style={"marginBottom": "25px", "width": "100%"}
-            ),
-
-            # Dynamic parameter dropdowns
-            dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
-
-            dcc.Loading(
-                id="loading-dropdowns-ss",
-                type="dot",
-                children=[
-                    html.Div([
-                        html.Label(param_labels.get(param, param)),
-                        dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False, style={"width": "100%"})
-                    ], style={"marginBottom": "25px"})
-                    for param in param_names
-                ]
-            )
-        ], style={
-            "flex": "0 0 250px",
-            "padding": "15px",
-            "boxSizing": "border-box",
-            "overflowY": "auto"
-        }),
-
-        # === Plot Area (Energy Map) ===
         html.Div([
             dcc.Loading(
                 id="loading-energy-map",
@@ -103,15 +55,77 @@ layout = html.Div([
                     dcc.Graph(id="energy-map", style={"height": "100%", "width": "100%"})
                 ]
             )
-        ], style={"width": "75%", "padding": "15px"})
+        ])
+    ], style={
+        "marginLeft": "290px",  # Push whole main content to the right
+        "padding": "15px",
+        "overflow": "hidden",
+        "height": "calc(100vh - 100px)"
+    }),
 
-    ], style={"display": "flex", "flexDirection": "row"})
+    # === Sidebar (fixed) ===
+    html.Div([
+        dcc.Store(id="ss-fixed-colorbar", storage_type="memory"),
+
+        html.Label("Colorbar Mode:"),
+        dcc.RadioItems(
+            id="colorbar-mode-toggle",
+            options=[
+                {"label": "Auto", "value": "auto"},
+                {"label": "Fixed", "value": "fixed"},
+            ],
+            value="auto",
+            inline=True,
+            labelStyle={"marginRight": "15px"},
+            style={"marginBottom": "20px"}
+        ),
+
+        html.H4("Parameters"),
+        html.Label("Select Ion Type:"),
+        dcc.Dropdown(
+            id="ion-type-dropdown-ss",
+            options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
+            placeholder="Select an ion type",
+            value="3d_d1",
+            clearable=False,
+            style={"marginBottom": "25px", "width": "100%"}
+        ),
+
+        dcc.Store(id="ss-initializer", data={}, storage_type='memory'),
+
+        dcc.Loading(
+            id="loading-dropdowns-ss",
+            type="dot",
+            children=[
+                html.Div([
+                    html.Label(param_labels.get(param, param)),
+                    dcc.Dropdown(id=f"ss-dropdown-{param}", clearable=False, style={"width": "100%"})
+                ], style={"marginBottom": "25px"})
+                for param in param_names
+            ]
+        )
+    ], style={
+        "position": "fixed",
+        "top": "80px",  # Adjust for actual nav height if needed
+        "bottom": "0",
+        "left": "20px",
+        "width": "250px",
+        "padding": "15px",
+        "boxSizing": "border-box",
+        "overflowY": "auto",
+        "borderRight": "1px solid #ccc",
+        "backgroundColor": "white",
+        "zIndex": 1000
+    }),
 ], style={
-    "margin": "20px",
-    "padding": "10px",
-    "boxSizing": "border-box",
-    "overflow": "hidden"
+    "height": "100vh",
+    "overflow": "hidden",
+    "margin": "0",
+    "padding": "0",
+    "boxSizing": "border-box"
 })
+
+
 
 # === CALLBACKS ===
 

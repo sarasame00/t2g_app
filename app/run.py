@@ -53,7 +53,7 @@ app.layout = html.Div([
     "padding": "10px",
     "boxSizing": "border-box",
     "minHeight": "100vh",
-    "overflow": "hidden"
+    "overflow": "hidden",
 })
 
 # Define callback to update the navigation bar based on the current page
@@ -90,7 +90,29 @@ def update_navbar(pathname):
     links.append(make_link("Sync Page", "/sync"))
 
     # Return all links wrapped inside a Div
-    return html.Div(links, style={"marginBottom": "30px"})
+    return html.Div(
+    [
+        html.Img(
+            src=app.get_asset_url("icon.png"),   # safest way
+            style={"height": "30px", "marginRight": "5px", "marginLight": "15px"}
+        ),
+        html.Span("T2g App  ", style={
+            "fontWeight": "bold",
+            "fontSize": "24px",
+            "marginRight": "85px"
+        }),
+        *links
+    ],
+    style={
+        "display": "flex",
+        "alignItems": "center",
+        "gap": "20px",
+        "marginBottom": "30px"
+    }
+)
+
+
+
 
 # Run the Dash app (only if this file is executed directly)
 if __name__ == "__main__":
