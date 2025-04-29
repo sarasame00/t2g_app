@@ -104,8 +104,8 @@ if is_connected():
                 data=missing[display_cols].to_dict("records"),
                 columns=[{"name": col, "id": col} for col in display_cols],
                 style_table={"overflowX": "auto"},
-                page_size=10,
-                style_cell={"textAlign": "center", "padding": "5px"},
+                page_size=8,
+                style_cell={"textAlign": "center", "padding": "5px", "fontSize": "14px",},
                 style_header={"fontWeight": "bold", "backgroundColor": "#f0f0f0"},
             ),
             {"model": model, "filenames": missing_files_list}
