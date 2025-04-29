@@ -3,8 +3,10 @@ import plotly.express as px
 from dash import html
 from logic.sym_utils import take_borders, antifourier
 
+# === Plot Functions ===
 
 def plot_orbital_momentum(data, t_values=None, fixed_range=None):
+    """Plot orbital momentum correlation along iBZ path."""
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -32,18 +34,18 @@ def plot_orbital_momentum(data, t_values=None, fixed_range=None):
         ),
         showlegend=False
     )
+
     if fixed_range:
         fig.update_yaxes(range=fixed_range)
 
-
+    # Add vertical lines at symmetry points
     for x in [dist[i * 12] for i in range(8)]:
         fig.add_vline(x=x, line_width=0.5, line_color="black")
 
     return fig
 
-
-
 def plot_orbital_real(data, t_values=None, fixed_range=None):
+    """Plot orbital real-space correlations."""
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -73,16 +75,15 @@ def plot_orbital_real(data, t_values=None, fixed_range=None):
             range=[-0.18, 0.18]
         ),
         showlegend=False
-
     )
+
     if fixed_range:
         fig.update_yaxes(range=fixed_range)
 
     return fig
 
-
-
 def plot_spin_momentum(data, t_values=None, fixed_range=None):
+    """Plot spin momentum correlation along iBZ path."""
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -111,17 +112,18 @@ def plot_spin_momentum(data, t_values=None, fixed_range=None):
         ),
         showlegend=False
     )
+
     if fixed_range:
         fig.update_yaxes(range=fixed_range)
 
+    # Add vertical lines at symmetry points
     for x in [dist[i * 12] for i in range(8)]:
         fig.add_vline(x=x, line_width=0.5, line_color="black")
 
     return fig
 
-
-
 def plot_spin_real(data, t_values=None, fixed_range=None):
+    """Plot spin real-space correlations."""
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -152,13 +154,14 @@ def plot_spin_real(data, t_values=None, fixed_range=None):
         ),
         showlegend=False
     )
+
     if fixed_range:
         fig.update_yaxes(range=fixed_range)
 
     return fig
 
-
 def plot_nn_correlation_vs_t(data_list, t_values):
+    """Plot nearest-neighbor orbital and spin-orbital correlations vs hopping t."""
     corr_AW = []
     corr_AT = []
 
@@ -169,8 +172,9 @@ def plot_nn_correlation_vs_t(data_list, t_values):
         x_orb, orb_r = antifourier(data["k_sz"], data["irrBZ"], orbcharge)
         x_spin, spin_r = antifourier(data["k_sz"], data["irrBZ"], spincharge)
 
-        corr_AT.append(orb_r[1])  # Orbital nearest neighbor
-        corr_AW.append(spin_r[1])  # Spin-Orbital nearest neighbor
+        # Save nearest-neighbor values (offset=1)
+        corr_AT.append(orb_r[1])
+        corr_AW.append(spin_r[1])
 
     fig = go.Figure()
 
@@ -197,19 +201,14 @@ def plot_nn_correlation_vs_t(data_list, t_values):
         yaxis_title="Nearest-Neighbor Correlation",
         xaxis_type="log",
         margin=dict(l=20, r=20, t=40, b=20),
-        legend=dict(
-            title="Correlation Type",
-            x=0.02,
-            y=0.98
-        ),
         font=dict(size=12),
         showlegend=False
     )
 
     return fig
 
-
 def empty_plot(message=""):
+    """Return an empty plot with a message (used for errors or no data)."""
     fig = go.Figure()
     fig.update_layout(
         title=message,
@@ -221,53 +220,39 @@ def empty_plot(message=""):
     )
     return fig
 
-
 def build_custom_legend(t_values):
+    """Build a custom HTML legend explaining colors and t-values."""
     colors = {
-        "Orbital": "#2145eb",        # triangle-up, blue
-        "Spin-Orbital": "#f83337"    # square, red
+        "Orbital": "#2145eb",
+        "Spin-Orbital": "#f83337"
     }
 
-    # Correlation type section (static content)
+    # Static part: Correlation types
     corr_section = html.Div([
         html.Div("Correlation Type", style={"fontWeight": "bold", "marginBottom": "5px"}),
         html.Div([
             html.Div([
-                html.Span("▲", style={
-                    "color": colors["Orbital"],
-                    "marginRight": "6px",
-                    "verticalAlign": "middle"
-                }),
+                html.Span("▲", style={"color": colors["Orbital"], "marginRight": "6px", "verticalAlign": "middle"}),
                 html.Span("⟨ δ𝕋 δ𝕋 ⟩ (orbital-orbital)")
             ], style={"marginBottom": "5px"}),
 
             html.Div([
-                html.Span("■", style={
-                    "color": colors["Spin-Orbital"],
-                    "marginRight": "6px",
-                    "verticalAlign": "middle"
-                }),
+                html.Span("■", style={"color": colors["Spin-Orbital"], "marginRight": "6px", "verticalAlign": "middle"}),
                 html.Span("⟨ δ𝕎 δ𝕎 ⟩ (spin-orbital)")
             ])
         ])
     ])
 
-    # Hopping t values (dynamic)
+    # Dynamic part: Hopping t values
     t_colors = px.colors.qualitative.Plotly
     t_section = html.Div([
         html.Div("Hopping t values", style={"fontWeight": "bold", "marginTop": "10px", "marginBottom": "5px"}),
         html.Ul([
             html.Li([
-                html.Span("■", style={
-                    "color": t_colors[i % len(t_colors)],
-                    "marginRight": "6px",
-                    "fontSize": "14px",
-                    "verticalAlign": "middle"
-                }),
+                html.Span("■", style={"color": t_colors[i % len(t_colors)], "marginRight": "6px", "fontSize": "14px", "verticalAlign": "middle"}),
                 f"t = {t:.2f} eV"
             ]) for i, t in enumerate(sorted(t_values))
         ], style={"listStyleType": "none", "paddingLeft": "0"})
     ])
-
 
     return html.Div([corr_section, t_section])
