@@ -4,7 +4,7 @@ from dash import html
 from logic.sym_utils import take_borders, antifourier
 
 
-def plot_orbital_momentum(data, t_values=None):
+def plot_orbital_momentum(data, t_values=None, fixed_range=None):
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -32,6 +32,9 @@ def plot_orbital_momentum(data, t_values=None):
         ),
         showlegend=False
     )
+    if fixed_range:
+        fig.update_yaxes(range=fixed_range)
+
 
     for x in [dist[i * 12] for i in range(8)]:
         fig.add_vline(x=x, line_width=0.5, line_color="black")
@@ -40,7 +43,7 @@ def plot_orbital_momentum(data, t_values=None):
 
 
 
-def plot_orbital_real(data, t_values=None):
+def plot_orbital_real(data, t_values=None, fixed_range=None):
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -72,12 +75,14 @@ def plot_orbital_real(data, t_values=None):
         showlegend=False
 
     )
+    if fixed_range:
+        fig.update_yaxes(range=fixed_range)
 
     return fig
 
 
 
-def plot_spin_momentum(data, t_values=None):
+def plot_spin_momentum(data, t_values=None, fixed_range=None):
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -106,6 +111,8 @@ def plot_spin_momentum(data, t_values=None):
         ),
         showlegend=False
     )
+    if fixed_range:
+        fig.update_yaxes(range=fixed_range)
 
     for x in [dist[i * 12] for i in range(8)]:
         fig.add_vline(x=x, line_width=0.5, line_color="black")
@@ -114,7 +121,7 @@ def plot_spin_momentum(data, t_values=None):
 
 
 
-def plot_spin_real(data, t_values=None):
+def plot_spin_real(data, t_values=None, fixed_range=None):
     fig = go.Figure()
 
     if isinstance(data, list):
@@ -145,6 +152,8 @@ def plot_spin_real(data, t_values=None):
         ),
         showlegend=False
     )
+    if fixed_range:
+        fig.update_yaxes(range=fixed_range)
 
     return fig
 
