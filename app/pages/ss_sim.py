@@ -148,7 +148,10 @@ def compute_fixed_zrange(selected_ion_type):
             continue
         try:
             data = np.loadtxt(file_path)
+            if data.size == 0:
+                continue  # skip empty files safely
             emap = data[:, 2].reshape(shape)
+
             zmins.append(np.min(emap))
             zmaxs.append(np.max(emap))
         except Exception:
