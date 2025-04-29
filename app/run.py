@@ -76,8 +76,7 @@ def update_navbar(pathname):
         )
 
     links.append(make_link("Single-site model", "/ss"))
-    links.append(make_link("Lattice model", "/lat"))
-    links.append(make_link("Lattice model Function of t", "/lat_t"))
+    links.append(make_link("Lattice model", "/lat_t"))
     links.append(make_link("Sync Page", "/sync"))
 
     return html.Div(links, style={"marginBottom": "30px"})
