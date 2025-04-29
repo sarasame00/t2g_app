@@ -1,0 +1,38 @@
+{
+    "name": "correlation-desktop",
+    "version": "1.0.0",
+    "description": "Electron wrapper for T2G correlation explorer",
+    "author": "Sara Sales Merino",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "dist": "electron-builder"
+    },
+    "devDependencies": {
+        "electron-builder": "^24.13.3",
+        "electron": "^30.0.0"
+    },
+    "build": {
+        "appId": "com.icmab.correlationexplorer",
+        "productName": "t2g App",
+        "files": [
+            "**/*"
+        ],
+        "directories": {
+            "buildResources": "assets"
+        },
+        "mac": {
+            "icon": "icon.icns",
+            "category": "public.app-category.education"
+        },
+        "win": {
+            "icon": "icon.ico",
+            "target": "nsis"  
+        },
+        "linux": {
+            "icon": "icon.png",
+            "target": "AppImage"
+        }
+    }
+
+}
