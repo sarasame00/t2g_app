@@ -36,62 +36,10 @@ register_page(__name__, path='/lat_t', name='Lattice model')
 
 # === Layout of the page
 layout = html.Div([
-    html.H2("Lattice Model"),
-
+    # === Main content (moved right to make room for fixed sidebar) ===
     html.Div([
-        # === Sidebar ===
-        dcc.Store(id="fixed-axes-store", storage_type="memory"),  # Store for fixed axes
+        html.H2("Lattice Model"),
 
-        html.Div([
-            # Axis mode toggle (Auto / Fixed)
-            html.Label("Axis Mode:"),
-            dcc.RadioItems(
-                id="axis-mode-toggle",
-                options=[
-                    {"label": "Auto", "value": "auto"},
-                    {"label": "Fixed", "value": "fixed"}
-                ],
-                value="auto",
-                inline=True,
-                labelStyle={"marginRight": "20px"},
-                style={"marginBottom": "20px"}
-            ),
-            html.H4("Parameters"),
-
-            # Ion type selector
-            html.Label("Select Ion Type:"),
-            dcc.Dropdown(
-                id="ion-type-dropdown-lat-t",
-                options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
-                placeholder="Select an ion type",
-                value="3d_d1",
-                clearable=False,
-                style={"marginBottom": "25px", "width": "100%"}
-            ),
-
-            # Store for initializing dropdowns
-            dcc.Store(id="lat-t-initializer", data={}, storage_type='memory'),
-
-            # Parameter dropdowns
-            dcc.Loading(
-                id="loading-dropdowns-lat-t",
-                type="dot",
-                children=[
-                    html.Div([
-                        html.Label(param_labels.get(param, param)),
-                        dcc.Dropdown(id=f"t-dropdown-{param}", multi=(param == "t"), clearable=False, style={"width": "100%"})
-                    ], style={"marginBottom": "25px"})
-                    for param in param_names
-                ]
-            )
-        ], style={
-            "flex": "0 0 250px",
-            "padding": "15px",
-            "boxSizing": "border-box",
-            "overflowY": "auto"
-        }),
-
-        # === Plot Area ===
         html.Div([
             dbc.Container([
                 dbc.Row([
@@ -102,26 +50,89 @@ layout = html.Div([
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "35vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "35vh"}), width=4),
-                    dbc.Col(html.Div(id="legend-div", style={"padding": "10px", "fontSize": "14px", "lineHeight": "1.6"}), width=4)
+                    dbc.Col(html.Div(id="legend-div", style={
+                        "padding": "10px",
+                        "fontSize": "14px",
+                        "lineHeight": "1.6"
+                    }), width=4)
                 ]),
             ], fluid=True)
-        ], style={
-            "flex": "1",
-            "padding": "15px",
-            "boxSizing": "border-box"
-        })
-    ],
-    style={
-        "display": "flex",
-        "flexDirection": "row",
-        "overflow": "hidden"
+        ])
+    ], style={
+        "marginLeft": "290px",  # Sidebar width + spacing
+        "padding": "15px",
+        "overflow": "hidden",
+        "height": "calc(100vh - 100px)"  # Optional tweak if header takes space
+    }),
+
+    # === Fixed Scrollable Sidebar ===
+    html.Div([
+        dcc.Store(id="fixed-axes-store", storage_type="memory"),
+
+        html.Label("Axis Mode:"),
+        dcc.RadioItems(
+            id="axis-mode-toggle",
+            options=[
+                {"label": "Auto", "value": "auto"},
+                {"label": "Fixed", "value": "fixed"}
+            ],
+            value="auto",
+            inline=True,
+            labelStyle={"marginRight": "20px"},
+            style={"marginBottom": "20px"}
+        ),
+
+        html.H4("Parameters"),
+
+        html.Label("Select Ion Type:"),
+        dcc.Dropdown(
+            id="ion-type-dropdown-lat-t",
+            options=[{'label': ion, 'value': ion} for ion in sorted(df['ion_type'].unique())],
+            placeholder="Select an ion type",
+            value="3d_d1",
+            clearable=False,
+            style={"marginBottom": "25px", "width": "100%"}
+        ),
+
+        dcc.Store(id="lat-t-initializer", data={}, storage_type='memory'),
+
+        dcc.Loading(
+            id="loading-dropdowns-lat-t",
+            type="dot",
+            children=[
+                html.Div([
+                    html.Label(param_labels.get(param, param)),
+                    dcc.Dropdown(
+                        id=f"t-dropdown-{param}",
+                        multi=(param == "t"),
+                        clearable=False,
+                        style={"width": "100%"}
+                    )
+                ], style={"marginBottom": "25px"})
+                for param in param_names
+            ]
+        )
+    ], style={
+        "position": "fixed",
+        "top": "80px",                  # Adjust if you have a navbar/header
+        "bottom": "0",
+        "left": "20px",
+        "width": "250px",
+        "padding": "15px",
+        "boxSizing": "border-box",
+        "overflowY": "auto",
+        "borderRight": "1px solid #ccc",
+        "backgroundColor": "white",
+        "zIndex": 1000
     })
 ], style={
-    "margin": "20px",
-    "padding": "10px",
-    "boxSizing": "border-box",
-    "overflow": "hidden"
+    "height": "100vh",
+    "overflow": "hidden",
+    "margin": "0",
+    "padding": "0",
+    "boxSizing": "border-box"
 })
+
 
 # === CALLBACKS ===
 
