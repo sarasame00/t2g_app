@@ -57,7 +57,7 @@ layout = html.Div([
                 children=[
                     html.Div([
                         html.Label(param_labels.get(param, param)),
-                        dcc.Dropdown(id=f"t-dropdown-{param}", clearable=False, style={"width": "100%"})
+                        dcc.Dropdown(id=f"t-dropdown-{param}", multi=(param == "t"), clearable=False, style={"width": "100%"})
                     ], style={"marginBottom": "25px"})
                     for param in param_names
                 ]
@@ -83,7 +83,8 @@ layout = html.Div([
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "35vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "35vh"}), width=4),
-                    dbc.Col(html.Div(), width=4),  # empty column for balance
+                    dbc.Col(html.Div(id="legend-div", style={"padding": "10px", "fontSize": "14px", "lineHeight": "1.6"}), width=4)
+
                 ]),
             ], fluid=True)
         ], style={
@@ -128,7 +129,11 @@ def initialize_dropdowns(selected_ion_type):
         for param in param_names
     ]
 
-    default_values = [param_values[param][0] for param in param_names]
+    default_values = [
+    param_values[param][0] if param != "t" else [param_values[param][0]]
+    for param in param_names
+]
+
 
     return options + default_values
 
@@ -138,52 +143,60 @@ def initialize_dropdowns(selected_ion_type):
     Output("t-plot-3", "figure"),
     Output("t-plot-4", "figure"),
     Output("t-plot-5", "figure"),
+    Output("legend-div", "children"),
     [Input("ion-type-dropdown-lat-t", "value")] + [Input(f"t-dropdown-{param}", "value") for param in param_names]
 )
-def update_lat_plots(selected_ion_type, U, J, g, t, lbd):
+def update_lat_plots(selected_ion_type, U, J, g, t_list, lbd):
     if not selected_ion_type:
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
         return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
 
+    if not isinstance(t_list, list):
+        t_list = [t_list]
+
     filtered_df = df[df['ion_type'] == selected_ion_type]
 
-    match = filtered_df[
-        (filtered_df["N"] == 1) &
-        np.isclose(filtered_df["U"], U) &
-        np.isclose(filtered_df["J"], J) &
-        np.isclose(filtered_df["g"], g) &
-        np.isclose(filtered_df["t"], t) &
-        np.isclose(filtered_df["lbd"], lbd)
-    ]
+    data_list = []
+    t_values = []
 
-    if match.empty:
-        empty_fig = visual.empty_plot(message="❌ No matching simulation found")
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+    for t in t_list:
+        match = filtered_df[
+            (filtered_df["N"] == 1) &
+            np.isclose(filtered_df["U"], U) &
+            np.isclose(filtered_df["J"], J) &
+            np.isclose(filtered_df["g"], g) &
+            np.isclose(filtered_df["t"], t) &
+            np.isclose(filtered_df["lbd"], lbd)
+        ]
 
-    filename = match.iloc[0]["filename"]
-    file_path = DATA_DIR / filename
+        if match.empty:
+            continue
 
-    if not file_path.exists():
-        empty_fig = visual.empty_plot()
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+        filename = match.iloc[0]["filename"]
+        file_path = DATA_DIR / filename
 
-    try:
-        data = load_correl_data(file_path)
-    except Exception as e:
-        empty_fig = visual.empty_plot()
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+        if not file_path.exists():
+            continue
 
-    fig_orbital_momentum = visual.plot_orbital_momentum(data)
-    fig_spin_momentum = visual.plot_spin_momentum(data)
-    fig_orbital_real = visual.plot_orbital_real(data)
-    fig_spin_real = visual.plot_spin_real(data)
-    fig_nearest_neighbor = visual.empty_plot()
+        try:
+            data = load_correl_data(file_path)
+        except Exception:
+            continue
 
-    # Important: Match x-axes inside the same column
-    fig_orbital_momentum.update_layout(xaxis=dict(matches='x2'))
-    fig_spin_momentum.update_layout(xaxis=dict(matches='x2'))
+        data_list.append(data)
+        t_values.append(t)
 
-    fig_orbital_real.update_layout(xaxis=dict(matches='x4'))
-    fig_spin_real.update_layout(xaxis=dict(matches='x4'))
+    if not data_list:
+        empty_fig = visual.empty_plot(message="❌ No matching data")
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
 
-    return fig_orbital_momentum, fig_spin_momentum, fig_orbital_real, fig_spin_real, fig_nearest_neighbor
+
+    fig_orbital_momentum = visual.plot_orbital_momentum(data_list, t_values)
+    fig_spin_momentum = visual.plot_spin_momentum(data_list, t_values)
+    fig_orbital_real = visual.plot_orbital_real(data_list, t_values)
+    fig_spin_real = visual.plot_spin_real(data_list, t_values)
+    fig_nearest_neighbor = visual.plot_nn_correlation_vs_t(data_list, t_values)
+    legend_html = visual.build_custom_legend(t_values)
+
+
+    return fig_orbital_momentum, fig_spin_momentum, fig_orbital_real, fig_spin_real, fig_nearest_neighbor, legend_html
