@@ -120,7 +120,7 @@ if __name__ == "__main__":
         app.run(
         host="127.0.0.1",
         port=8050,     # Dash server runs here
-        debug=False,
+        debug=True,
     )
     except Exception as e:
         print(f"Failed to start the app: {e}")
