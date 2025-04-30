@@ -12,15 +12,7 @@ def load_simulation_metadata(model: str):
     """
     Download and load simulation metadata CSV for a given model ('lat' or 'ss').
 
-    Parameters:
-    ----------
-    model : str
-        Model name ("lat" or "ss").
-
-    Returns:
-    -------
-    df : pandas.DataFrame
-        Metadata dataframe including inferred ion types.
+    Returns a clean dataframe with numeric parameter columns and inferred ion types.
     """
     assert model in ["lat", "ss"], "Model must be 'lat' or 'ss'"
 
@@ -34,13 +26,29 @@ def load_simulation_metadata(model: str):
     if not file_path.exists():
         raise FileNotFoundError(f"Metadata CSV not found: {file_path}")
 
-    # Load into pandas
+    # Load raw CSV
     df = pd.read_csv(file_path)
 
-    # Add ion type inferred from parameters
-    df["ion_type"] = df.apply(infer_ion_type, axis=1)
+    # Force numeric types in parameter columns
+    numeric_cols = ["U", "J", "g", "lbd", "B", "N"]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Drop rows that are completely broken (e.g., missing N)
+    df = df.dropna(subset=["N"])
+
+    # Safely apply ion type inference
+    def safe_infer(row):
+        try:
+            return infer_ion_type(row)
+        except Exception:
+            return "unknown"
+
+    df["ion_type"] = df.apply(safe_infer, axis=1)
 
     return df
+
 
 def check_file_existence(df, model, extension=""):
     """

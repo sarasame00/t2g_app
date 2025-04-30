@@ -34,10 +34,9 @@ def infer_ion_type(row):
     Returns:
     -------
     str
-        Inferred ion type ("3d_d1", "4d_d1", "5d_d1"), or "unknown" if no match.
+        Inferred ion type ("3d_d1", "4d_d1", "5d_d1"), or "unknown" if no match or format error.
     """
 
-    # Define classification rules: expected ranges for each ion type
     rules = {
         "3d_d1": {
             "N": (1, 1),
@@ -68,18 +67,21 @@ def infer_ion_type(row):
         }
     }
 
-    # Loop over all ion types and check if parameters match
-    for ion, ranges in rules.items():
-        match = True
-        for param, (low, high) in ranges.items():
-            if param not in row:
-                continue  # Skip missing parameters (assume neutral)
-            if not in_range(row[param], low, high):
-                match = False
-                break
+    try:
+        for ion, ranges in rules.items():
+            match = True
+            for param, (low, high) in ranges.items():
+                if param not in row:
+                    continue  # Missing parameter, ignore
+                value = float(row[param])  # Will raise if not numeric
+                if not in_range(value, low, high):
+                    match = False
+                    break
 
-        if match:
-            return ion
+            if match:
+                return ion
+    except Exception:
+        # Catch any error in format (e.g., non-numeric, NaN, etc.)
+        return "unknown"
 
-    # If no rule matches, classify as unknown
     return "unknown"

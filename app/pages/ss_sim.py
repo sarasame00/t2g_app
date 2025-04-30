@@ -140,16 +140,29 @@ def initialize_dropdowns(selected_ion_type):
         return [[] for _ in param_names * 2]
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
-    param_values = {param: sorted(filtered_df[param].unique()) for param in param_names}
 
-    options = [
-        [{"label": f"{v:.3f}", "value": v} for v in param_values[param]]
+    param_values = {
+        param: sorted(filtered_df[param].unique())
         for param in param_names
-    ]
+    }
 
-    default_values = [param_values[param][0] for param in param_names]
+    options = []
+    default_values = []
+
+    for param in param_names:
+        clean_vals = [
+            float(v)
+            for v in param_values[param]
+            if isinstance(v, (int, float, np.number))
+            or (isinstance(v, str) and v.replace('.', '', 1).isdigit())
+        ]
+        opts = [{"label": f"{v:.3f}", "value": v} for v in clean_vals]
+        options.append(opts)
+
+        default_values.append(clean_vals[0] if clean_vals else None)  # Safe fallback
 
     return options + default_values
+
 
 @callback(
     Output("ss-fixed-colorbar", "data"),
