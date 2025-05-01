@@ -1,4 +1,6 @@
 import threading
+import os
+from pathlib import Path
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -12,10 +14,14 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 # === Service Initialization ===
 def get_drive_service():
     """Authenticate and return a Google Drive service object."""
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES
-    )
-    return build("drive", "v3", credentials=creds)
+    try:
+        creds = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES
+        )
+        return build("drive", "v3", credentials=creds)
+    except Exception as e:
+        print(f"❌ Failed to authenticate Google Drive service: {e}")
+        raise ConnectionError("Google Drive authentication failed.")
 
 # === Helper to List Files ===
 def list_files_in_folder(service, folder_id):
@@ -43,7 +49,6 @@ def list_files_in_folder(service, folder_id):
 
     return files
 
-
 # === Download Metadata CSV ===
 def download_metadata_csv(model):
     """Download the metadata CSV for a model ('lat' or 'ss') from Drive."""
@@ -58,14 +63,14 @@ def download_metadata_csv(model):
         all_drive_files = list_files_in_folder(service, folder_id)
     except ConnectionError as e:
         print(e)
-        return  
+        return
 
     file_lookup = {f["name"]: f["id"] for f in all_drive_files}
 
     if metadata_filename not in file_lookup:
         raise FileNotFoundError(f"{metadata_filename} not found in Google Drive.")
 
-    print(f"Downloading metadata: {metadata_filename}")
+    print(f"📥 Downloading metadata: {metadata_filename}")
     request = service.files().get_media(fileId=file_lookup[metadata_filename])
 
     # Ensure parent directory exists
@@ -93,11 +98,17 @@ def download_specific_files(model_name, filenames):
     """Download specific simulation files for a given model."""
     global _download_progress
 
+    if not filenames:
+        _download_progress = "⚠️ No filenames provided for download."
+        return
+
     service = get_drive_service()
     folder_id = GDRIVE_FOLDER_IDS[model_name]
 
     local_dir = LOCAL_DATA_FOLDER / f"{model_name}_data"
     local_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"📂 Saving downloaded files to: {local_dir}")
 
     drive_files = list_files_in_folder(service, folder_id)
     drive_lookup = {f['name']: f['id'] for f in drive_files}
