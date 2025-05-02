@@ -3,18 +3,17 @@ import plotly.express as px
 from dash import dcc, html, Input, Output, callback, register_page
 from matplotlib.colors import LinearSegmentedColormap, to_hex
 
-from logic.data_loader import load_filtered_metadata
-from logic.inference import infer_ion_type 
+from logic.data_loader import load_cached_filtered_metadata
+from sync.config import LOCAL_DATA_FOLDER
+from plots.visualize import empty_plot
 
 # === CONFIGURATION ===
 shape = (101, 101)  # Shape of the energy maps
 model = "ss"        # Model type (single-site)
 
-# === Load filtered metadata
-df, DATA_DIR = load_filtered_metadata(model)
-
-# === Infer ion type column based on metadata
-df['ion_type'] = df.apply(infer_ion_type, axis=1)
+# Load filtered metadata
+df, _ = load_cached_filtered_metadata(model)
+DATA_DIR = LOCAL_DATA_FOLDER / f"{model}_data"
 
 # === Prepare dropdowns: collect available parameter values
 param_names = ["U", "J", "g", "lbd", "B"]  # 'N' is fixed per ion type
@@ -206,9 +205,8 @@ def compute_fixed_zrange(selected_ion_type):
 def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, B):
     """Update energy map figure based on selected parameters."""
     if not selected_ion_type:
-        fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
-        fig.update_layout(title="❌ Select an ion type")
-        return fig
+        return empty_plot("❌ Select an ion type")
+
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
 
@@ -222,9 +220,7 @@ def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, 
     ]
 
     if match.empty:
-        fig = px.imshow(np.zeros(shape), color_continuous_scale=plotly_colorscale)
-        fig.update_layout(title="❌ No matching simulation found")
-        return fig
+        return empty_plot("❌ No matching simulation found")
 
     filename = match.iloc[-1]["filename"]
     file_path = DATA_DIR / filename
@@ -240,8 +236,8 @@ def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, 
             zmax = zmin + (np.max(emap) - zmin) * 1.0
     except Exception as e:
         print(f"❌ Error loading or reshaping data: {e}")
-        emap = np.zeros(shape)
-        zmin, zmax = 0, 1
+        return empty_plot("❌ Error loading simulation")
+
 
     fig = px.imshow(
         emap,

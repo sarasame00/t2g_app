@@ -16,7 +16,14 @@
         "appId": "com.icmab.correlationexplorer",
         "productName": "t2g App",
         "files": [
-            "**/*"
+            "main.js",
+            "run",
+            "icon.*",
+            "assets/**",
+            "package.json"
+        ],
+        "asarUnpack": [
+            "run"
         ],
         "directories": {
             "buildResources": "assets"
@@ -34,5 +41,6 @@
             "target": "AppImage"
         }
     }
+
 
 }
