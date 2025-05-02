@@ -1,46 +1,37 @@
 {
-    "name": "correlation-desktop",
-    "version": "1.0.0",
-    "description": "Electron wrapper for T2G correlation explorer",
-    "author": "Sara Sales Merino",
-    "main": "main.js",
-    "scripts": {
-        "start": "electron .",
-        "dist": "electron-builder"
+  "name": "correlation-desktop",
+  "version": "1.0.0",
+  "description": "Electron wrapper for T2G correlation explorer",
+  "author": "Sara Sales Merino",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.icmab.correlationexplorer",
+    "productName": "t2g App",
+    "files": [
+      "main.js",
+      "run",
+      "icon.*",
+      "assets/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "run"
+    ],
+    "directories": {
+      "buildResources": "assets"
     },
-    "devDependencies": {
-        "electron-builder": "^24.13.3",
-        "electron": "^30.0.0"
+    "win": {
+      "icon": "icon.ico",
+      "target": "nsis"
     },
-    "build": {
-        "appId": "com.icmab.correlationexplorer",
-        "productName": "t2g App",
-        "files": [
-            "main.js",
-            "run",
-            "icon.*",
-            "assets/**",
-            "package.json"
-        ],
-        "asarUnpack": [
-            "run"
-        ],
-        "directories": {
-            "buildResources": "assets"
-        },
-        "mac": {
-            "icon": "icon.icns",
-            "category": "public.app-category.education"
-        },
-        "win": {
-            "icon": "icon.ico",
-            "target": "nsis"  
-        },
-        "linux": {
-            "icon": "icon.png",
-            "target": "AppImage"
-        }
-    }
-
-
+    "publish": null
+  }
 }

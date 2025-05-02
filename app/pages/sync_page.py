@@ -11,7 +11,7 @@ from sync.gdrive_sync import start_download_thread, get_progress_log
 dash.register_page(__name__, path="/sync", name="Data Sync")
 
 
-def is_connected(host="127.0.0.1", port=8050, timeout=5):
+def is_connected(host="8.8.8.8", port=53, timeout=5):
     """Check internet connection by pinging a DNS server."""
     try:
         socket.setdefaulttimeout(timeout)

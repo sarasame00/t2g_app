@@ -9,19 +9,28 @@ import multiprocessing
 def resource_path(relative_path):
     """Get absolute path to resource, works for PyInstaller and dev."""
     if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 # Add project root to sys.path so that imports from parent directory work
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+pages_path = resource_path("pages")
 assets_path = resource_path("assets")
+
+print("💡 Looking for pages folder at:", pages_path)
+print("📁 Contents of dist directory:", os.listdir(os.path.dirname(pages_path)))
+print("📁 Contents of pages_path:", os.listdir(pages_path) if os.path.exists(pages_path) else "❌ NOT FOUND")
 
 # Initialize the Dash app with Bootstrap theme for styling
 app = Dash(
     __name__,
     assets_folder=assets_path,
+    pages_folder=pages_path,
     use_pages=True,
     external_stylesheets=[dbc.themes.FLATLY],
     serve_locally=True
