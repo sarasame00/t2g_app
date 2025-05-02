@@ -1,22 +1,23 @@
 from dash import dcc, html, Input, Output, callback, register_page
 
-import pandas as pd
 import numpy as np
+import os, sys
+from pathlib import Path
 
-from logic.data_loader import load_filtered_metadata, load_correl_data
+
+from logic.data_loader import load_cached_filtered_metadata, load_correl_data
 import plots.visualize as visual
-from logic.inference import infer_ion_type
 import dash_bootstrap_components as dbc
 from logic.sym_utils import take_borders
+from sync.config import LOCAL_DATA_FOLDER
 
 # === CONFIGURATION ===
 model = "lat"
 
 # === Load metadata
-df, DATA_DIR = load_filtered_metadata(model, data_ext=".hdf5")
+df, DATA_DIR = load_cached_filtered_metadata("lat", data_ext=".hdf5")
+DATA_DIR = Path(LOCAL_DATA_FOLDER) / f"{model}_data"
 
-# === Infer ion type for each row
-df['ion_type'] = df.apply(infer_ion_type, axis=1)
 
 # === Define parameter names
 float_params = ["U", "J", "g", "t", "lbd"]
