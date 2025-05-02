@@ -3,7 +3,7 @@ services:
     name: t2g-app
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.run:server
+    startCommand: gunicorn app.run:server
     envVars:
       - key: DASH_ENV
         value: production
