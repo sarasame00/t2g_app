@@ -25,12 +25,12 @@ def plot_orbital_momentum(data, t_values=None, fixed_range=None):
         k_sz = data["k_sz"]
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=40, b=10),
+        margin=dict(l=10, r=10, t=10, b=10),
         yaxis_title="⟨ δ𝕋<sub>q</sub> δ𝕋<sub>q</sub> ⟩",
         xaxis=dict(
             tickmode="array",
             tickvals=[dist[i * (k_sz // 2)] for i in range(8)],
-            ticktext=["", "", "", "", "", "", "", ""]
+            ticktext=["Γ", "X", "M", "Γ", "R", "X", "M", "R"]
         ),
         showlegend=False
     )
@@ -62,12 +62,12 @@ def plot_orbital_real(data, t_values=None, fixed_range=None):
         fig.add_trace(go.Scatter(x=x, y=orbcharge_r, mode='markers+lines'))
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=40, b=10),
+        margin=dict(l=10, r=10, t=10, b=10),
         yaxis_title="⟨ δ𝕋<sub>i</sub> δ𝕋<sub>j</sub> ⟩",
         xaxis=dict(
             tickmode="array",
             tickvals=[0, 3, 6, 9, 12, 15],
-            ticktext=["", "", "", "", "", ""],
+            ticktext=[0, 3, 6, 9, 12, 15]
         ),
         yaxis=dict(
             tickmode="array",
@@ -102,8 +102,7 @@ def plot_spin_momentum(data, t_values=None, fixed_range=None):
         k_sz = data["k_sz"]
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=10, b=10),
-        xaxis_title="q along iBZ path",
+        margin=dict(l=10, r=10, t=10, b=10),
         yaxis_title="⟨ δ𝕎<sub>q</sub> δ𝕎<sub>q</sub> ⟩",
         xaxis=dict(
             tickmode="array",
@@ -140,8 +139,8 @@ def plot_spin_real(data, t_values=None, fixed_range=None):
         fig.add_trace(go.Scatter(x=x, y=spin_r, mode='markers+lines'))
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=10, b=10),
-        xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
+        margin=dict(l=10, r=10, t=10, b=10),
+        #xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
         yaxis_title="⟨ δ𝕎<sub>i</sub> δ𝕎<sub>j</sub> ⟩",
         xaxis=dict(
             tickmode="array",
@@ -200,7 +199,7 @@ def plot_nn_correlation_vs_t(data_list, t_values):
         xaxis_title="t (eV)",
         yaxis_title="Nearest-Neighbor Correlation",
         xaxis_type="log",
-        margin=dict(l=20, r=20, t=40, b=20),
+        margin=dict(l=10, r=10, t=10, b=10),
         font=dict(size=12),
         showlegend=False
     )
@@ -227,8 +226,7 @@ def plot_sigmaz_momentum(data, t_values=None, fixed_range=None):
         k_sz = data["k_sz"]
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=10, b=10),
-        xaxis_title="q along iBZ path",
+        margin=dict(l=10, r=10, t=10, b=10),
         yaxis_title="⟨ δσ<sub>z</sub> δσ<sub>z</sub> ⟩",
         xaxis=dict(
             tickmode="array",
@@ -263,8 +261,8 @@ def plot_sigmaz_real(data, t_values=None, fixed_range=None):
         fig.add_trace(go.Scatter(x=x, y=spin_r, mode='markers+lines'))
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=10, b=10),
-        xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
+        margin=dict(l=10, r=10, t=10, b=10),
+        #xaxis_title="x<sub>j</sub> - x<sub>i</sub>",
         yaxis_title="⟨ δσ<sub>z</sub> δσ<sub>z</sub> ⟩",
         xaxis=dict(
             tickmode="array",
@@ -296,14 +294,12 @@ def empty_plot(message=""):
     )
     return fig
 
-def build_custom_legend(t_values):
-    """Build a custom HTML legend explaining colors and t-values."""
+def build_legend_correl():
     colors = {
         "Orbital": "#2145eb",
         "Spin-Orbital": "#f83337"
     }
 
-    # Static part: Correlation types
     corr_section = html.Div([
         html.Div("Correlation Type", style={"fontWeight": "bold", "marginBottom": "5px"}),
         html.Div([
@@ -317,9 +313,11 @@ def build_custom_legend(t_values):
                 html.Span("⟨ δ𝕎 δ𝕎 ⟩ (spin-orbital)")
             ])
         ])
-    ])
+    ], style={"marginTop": "5px"})
+    return corr_section
 
-    # Dynamic part: Hopping t values
+def build_legend_t(t_values):
+
     t_colors = px.colors.qualitative.Plotly
     t_section = html.Div([
         html.Div("Hopping t values", style={"fontWeight": "bold", "marginTop": "10px", "marginBottom": "5px"}),
@@ -329,6 +327,6 @@ def build_custom_legend(t_values):
                 f"t = {t:.2f} eV"
             ]) for i, t in enumerate(sorted(t_values))
         ], style={"listStyleType": "none", "paddingLeft": "0"})
-    ])
+    ], style={"marginTop": "5px"})
 
-    return html.Div([corr_section, t_section])
+    return t_section

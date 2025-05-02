@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 from logic.data_loader import load_cached_filtered_metadata, load_correl_data
-import plots.visualize as visual
+import plots.visualize_test as visual
 import dash_bootstrap_components as dbc
 from logic.sym_utils import take_borders
 from sync.config import LOCAL_DATA_FOLDER
@@ -43,19 +43,23 @@ layout = html.Div([
 
         html.Div([
             dbc.Container([
+                # Row 1: plot-1 | plot-2 | plot-6
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id="t-plot-1", style={"height": "35vh"}), width=4),
-                    dbc.Col(dcc.Graph(id="t-plot-3", style={"height": "35vh"}), width=4),
-                    dbc.Col(dcc.Graph(id="t-plot-5", style={"height": "35vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-1", style={"height": "23vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "23vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-6", style={"height": "23vh"}), width=4),
                 ]),
+                # Row 2: plot-3 | plot-4 | plot-7
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "35vh"}), width=4),
-                    dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "35vh"}), width=4),
-                    dbc.Col(html.Div(id="legend-div", style={
-                        "padding": "10px",
-                        "fontSize": "14px",
-                        "lineHeight": "1.6"
-                    }), width=4)
+                    dbc.Col(dcc.Graph(id="t-plot-3", style={"height": "23vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "23vh"}), width=4),
+                    dbc.Col(dcc.Graph(id="t-plot-7", style={"height": "23vh"}), width=4),
+                ]),
+                # Row 3: plot-5 | legend
+                dbc.Row([
+                    dbc.Col(dcc.Graph(id="t-plot-5", style={"height": "23vh"}), width=4),
+                    dbc.Col(html.Div(id="legend-correl", style={"height": "23vh"}), width=4),
+                    dbc.Col(html.Div(id="legend-t", style={"height": "23vh"}), width=4),
                 ]),
             ], fluid=True)
         ])
@@ -227,7 +231,10 @@ def compute_fixed_axes(selected_ion_type):
     Output("t-plot-3", "figure"),
     Output("t-plot-4", "figure"),
     Output("t-plot-5", "figure"),
-    Output("legend-div", "children"),
+    Output("t-plot-6", "figure"),
+    Output("t-plot-7", "figure"),
+    Output("legend-correl", "children"),
+    Output("legend-t", "children"),
     Input("ion-type-dropdown-lat-t", "value"),
     Input("axis-mode-toggle", "value"),
     Input("fixed-axes-store", "data"),
@@ -237,7 +244,7 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
     """Update all plots according to user selection."""
     if not selected_ion_type:
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
 
     # Defensive: Ensure t_list is a list
     if not isinstance(t_list, list):
@@ -276,7 +283,7 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
 
     if not data_list:
         empty_fig = visual.empty_plot(message="❌ No matching data")
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
+        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend"), html.Div("No legend")
 
     # === Handle fixed axis ranges if enabled ===
     momentum_fixed = fixed_axes.get("momentum", None) if fixed_axes else None
@@ -295,7 +302,25 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
     fig_spin_real = visual.plot_spin_real(
         data_list, t_values, fixed_range=spin_real_fixed if axis_mode == "fixed" else None
     )
+    fig_sigmaz_momentum = visual.plot_sigmaz_momentum(
+        data_list, t_values, fixed_range=momentum_fixed if axis_mode == "fixed" else None
+    )
+    fig_sigmaz_real = visual.plot_sigmaz_real(
+        data_list, t_values, fixed_range=orbital_real_fixed if axis_mode == "fixed" else None
+    )
     fig_nearest_neighbor = visual.plot_nn_correlation_vs_t(data_list, t_values)
-    legend_html = visual.build_custom_legend(t_values)
+    legend_correl = visual.build_legend_correl()
+    legend_t = visual.build_legend_t(t_values)
 
-    return fig_orbital_momentum, fig_spin_momentum, fig_orbital_real, fig_spin_real, fig_nearest_neighbor, legend_html
+    return (
+        fig_orbital_momentum,  # t-plot-1
+        fig_spin_momentum,     # t-plot-2
+        fig_orbital_real,      # t-plot-3
+        fig_spin_real,         # t-plot-4
+        fig_nearest_neighbor,  # t-plot-5
+        fig_sigmaz_momentum,   # t-plot-6
+        fig_sigmaz_real,       # t-plot-7
+        legend_correl,          # legend-correl
+        legend_t               # legend-t
+    )
+
