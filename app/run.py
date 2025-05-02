@@ -111,8 +111,7 @@ def update_navbar(pathname):
     }
 )
 
-
-
+server = app.server
 
 # Run the Dash app (only if this file is executed directly)
 if __name__ == "__main__":
