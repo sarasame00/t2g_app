@@ -6,8 +6,8 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
 # === Google Drive Folder IDs ===
 GDRIVE_FOLDER_IDS = {
-    "lat": "1-UDQwKXUsjsOpKgKBeGaIO1Acv7T8wm6",
-    "ss": "1VPQ4HARo7HJVXoXWRhVYYn79Svs3IZWq",
+    "lat": "11iE39rc67cgmxzWcNpTn2TnBWPXYhK6u",
+    "ss": "1lfVuc2xSYqTm2Xn4cjzY_wDl-EnN3yZW",
 }
 
 # === Local Data Paths ===

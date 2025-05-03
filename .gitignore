@@ -43,6 +43,7 @@ Thumbs.db
 
 # === Secrets / Configs ===
 drive_service_account.json
+drive_service_account_sara.json
 
 # PyInstaller/Electron build output
 dist/
