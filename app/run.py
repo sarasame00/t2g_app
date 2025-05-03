@@ -87,7 +87,7 @@ def update_navbar(pathname):
     # Create links for different pages
     links.append(make_link("Single-site model", "/"))
     links.append(make_link("Lattice model", "/lat_t"))
-    links.append(make_link("Sync Page", "/sync"))
+    # links.append(make_link("Sync Page", "/sync"))
 
     # Return all links wrapped inside a Div
     return html.Div(
