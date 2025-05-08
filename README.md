@@ -6,7 +6,7 @@
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/yourusername/t2g_app
+git clone https://github.com/sarasame00/t2g_app
 cd t2g_app
 
 # 2. Create a virtual environment
