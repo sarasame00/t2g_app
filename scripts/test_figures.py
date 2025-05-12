@@ -4,7 +4,7 @@ import sys
 
 sys.path.append("/Users/sarasalesmerino/Desktop/ICMAB/t2g_app/")
 
-from plots.visualize_test import plot_sigmaz_momentum, plot_sigmaz_real  
+from plots.visualize import plot_sigmaz_momentum, plot_sigmaz_real  
 from logic.data_loader import load_correl_data
 
 

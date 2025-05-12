@@ -1,12 +1,10 @@
 from dash import dcc, html, Input, Output, callback, register_page
-
 import numpy as np
 import os, sys
 from pathlib import Path
 
-
 from logic.data_loader import load_cached_filtered_metadata, load_correl_data
-import plots.visualize_test as visual
+import plots.visualize as visual
 import dash_bootstrap_components as dbc
 from logic.sym_utils import take_borders
 from sync.config import LOCAL_DATA_FOLDER
@@ -15,15 +13,16 @@ from sync.config import LOCAL_DATA_FOLDER
 model = "lat"
 
 # === Load metadata
+# Load filtered metadata and set the data directory
+# based on local configuration and model name
 df, DATA_DIR = load_cached_filtered_metadata("lat", data_ext=".hdf5")
 DATA_DIR = Path(LOCAL_DATA_FOLDER) / f"{model}_data"
-
 
 # === Define parameter names
 float_params = ["U", "J", "g", "t", "lbd"]
 param_names = float_params
 
-# Map internal parameter names to human-readable labels
+# Human-readable labels for UI display
 param_labels = {
     "U": "U (eV)",
     "J": "J (eV)",
@@ -32,30 +31,26 @@ param_labels = {
     "lbd": "ξ (eV)"
 }
 
-# === Register Page with Dash Pages system
+# === Register Dash Page ===
 register_page(__name__, path='/lat_t', name='Lattice model')
 
-# === Layout of the page
+# === Layout of the Dash Page ===
 layout = html.Div([
-    # === Main content (moved right to make room for fixed sidebar) ===
     html.Div([
         html.H2("Lattice Model"),
 
         html.Div([
             dbc.Container([
-                # Row 1: plot-1 | plot-2 | plot-6
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-1", style={"height": "23vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-2", style={"height": "23vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-6", style={"height": "23vh"}), width=4),
                 ]),
-                # Row 2: plot-3 | plot-4 | plot-7
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-3", style={"height": "23vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-4", style={"height": "23vh"}), width=4),
                     dbc.Col(dcc.Graph(id="t-plot-7", style={"height": "23vh"}), width=4),
                 ]),
-                # Row 3: plot-5 | legend
                 dbc.Row([
                     dbc.Col(dcc.Graph(id="t-plot-5", style={"height": "23vh"}), width=4),
                     dbc.Col(html.Div(id="legend-correl", style={"height": "23vh"}), width=4),
@@ -64,13 +59,13 @@ layout = html.Div([
             ], fluid=True)
         ])
     ], style={
-        "marginLeft": "290px",  # Sidebar width + spacing
+        "marginLeft": "290px",
         "padding": "15px",
         "overflow": "hidden",
-        "height": "calc(100vh - 100px)"  # Optional tweak if header takes space
+        "height": "calc(100vh - 100px)"
     }),
 
-    # === Fixed Scrollable Sidebar ===
+    # Sidebar with parameter selectors
     html.Div([
         dcc.Store(id="fixed-axes-store", storage_type="memory"),
 
@@ -119,7 +114,7 @@ layout = html.Div([
         )
     ], style={
         "position": "fixed",
-        "top": "80px",                  # Adjust if you have a navbar/header
+        "top": "80px",
         "bottom": "0",
         "left": "20px",
         "width": "250px",
@@ -141,14 +136,24 @@ layout = html.Div([
 
 # === CALLBACKS ===
 
-# Initialize parameter dropdowns based on selected ion type
 @callback(
     [Output(f"t-dropdown-{param}", "options") for param in param_names] +
     [Output(f"t-dropdown-{param}", "value") for param in param_names],
     Input("ion-type-dropdown-lat-t", "value")
 )
 def initialize_dropdowns(selected_ion_type):
-    """Initialize dropdown options and default values."""
+    """Initialize dropdowns for parameters based on selected ion type.
+
+    Parameters
+    ----------
+    selected_ion_type : str
+        The selected ion type from the dropdown.
+
+    Returns
+    -------
+    list
+        A list of options and default values for each parameter dropdown.
+    """
     if not selected_ion_type:
         return [[] for _ in param_names * 2]
 
@@ -167,64 +172,62 @@ def initialize_dropdowns(selected_ion_type):
 
     return options + default_values
 
-# Compute fixed axes ranges for plots
+
 @callback(
     Output("fixed-axes-store", "data"),
     Input("ion-type-dropdown-lat-t", "value")
 )
 def compute_fixed_axes(selected_ion_type):
-    """Compute global fixed axis ranges."""
+    """Compute global fixed axis ranges for plots.
+
+    Parameters
+    ----------
+    selected_ion_type : str
+        The selected ion type.
+
+    Returns
+    -------
+    dict
+        Axis range settings for momentum, orbital and spin values.
+    """
     if not selected_ion_type:
         return {}
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
-
     data_list = []
     for idx, row in filtered_df.iterrows():
-        filename = row["filename"]
-        file_path = DATA_DIR / filename
-
+        file_path = DATA_DIR / row["filename"]
         if not file_path.exists():
             continue
-
         try:
             data = load_correl_data(file_path)
         except Exception:
             continue
-
         data_list.append(data)
 
     if not data_list:
         return {}
 
-    # Extract min/max from correlation functions
     momentum_min, momentum_max = [], []
     for data in data_list:
         orbcharge = 4 * (data["corrdiag"] - data["corroffd"])
         spincharge = 2 * (3 * data["corrdiag"] + data["corroffd"])
+        _, orbcharge_k = take_borders(data["irrBZ"], orbcharge)
+        _, spin_k = take_borders(data["irrBZ"], spincharge)
+        momentum_min.extend([np.min(orbcharge_k), np.min(spin_k)])
+        momentum_max.extend([np.max(orbcharge_k), np.max(spin_k)])
 
-        dist, orbcharge_k = take_borders(data["irrBZ"], orbcharge)
-        dist, spin_k = take_borders(data["irrBZ"], spincharge)
-
-        momentum_min.append(np.min(orbcharge_k))
-        momentum_min.append(np.min(spin_k))
-        momentum_max.append(np.max(orbcharge_k))
-        momentum_max.append(np.max(spin_k))
-
-    # Add margin
     margin_factor = 0.05
     momentum_range = [min(momentum_min), max(momentum_max)]
-    momentum_margin = (momentum_range[1] - momentum_range[0]) * margin_factor
+    margin = (momentum_range[1] - momentum_range[0]) * margin_factor
 
-    fixed_ranges = {
-        "momentum": [momentum_range[0] - momentum_margin, momentum_range[1] + momentum_margin],
+    return {
+        "momentum": [momentum_range[0] - margin, momentum_range[1] + margin],
         "orbital_real": [-0.15, 0.15],
         "spin_real": [-0.15, 0.15],
     }
 
-    return fixed_ranges
 
-# Update plots when user changes parameters
 @callback(
     Output("t-plot-1", "figure"),
     Output("t-plot-2", "figure"),
@@ -241,18 +244,33 @@ def compute_fixed_axes(selected_ion_type):
     *[Input(f"t-dropdown-{param}", "value") for param in param_names]
 )
 def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, lbd):
-    """Update all plots according to user selection."""
+    """Update all plots based on user inputs and selected parameters.
+
+    Parameters
+    ----------
+    selected_ion_type : str
+        Selected ion type.
+    axis_mode : str
+        Axis mode toggle ('auto' or 'fixed').
+    fixed_axes : dict
+        Dict with fixed axis ranges.
+    U, J, g, t_list, lbd : float or list
+        Physical parameters for filtering and plotting.
+
+    Returns
+    -------
+    tuple
+        Plotly figures and legend components.
+    """
     if not selected_ion_type:
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend")
+        return (empty_fig,) * 7 + (html.Div("No legend"),) * 2
 
-    # Defensive: Ensure t_list is a list
     if not isinstance(t_list, list):
         t_list = [t_list]
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
-    data_list = []
-    t_values = []
+    data_list, t_values = [], []
 
     for t in t_list:
         match = filtered_df[
@@ -263,64 +281,34 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
             np.isclose(filtered_df["t"], t) &
             np.isclose(filtered_df["lbd"], lbd)
         ]
-
         if match.empty:
             continue
-
-        filename = match.iloc[-1]["filename"]
-        file_path = DATA_DIR / filename
-
+        file_path = DATA_DIR / match.iloc[-1]["filename"]
         if not file_path.exists():
             continue
-
         try:
             data = load_correl_data(file_path)
         except Exception:
             continue
-
         data_list.append(data)
         t_values.append(t)
 
     if not data_list:
         empty_fig = visual.empty_plot(message="❌ No matching data")
-        return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, html.Div("No legend"), html.Div("No legend")
+        return (empty_fig,) * 7 + (html.Div("No legend"),) * 2
 
-    # === Handle fixed axis ranges if enabled ===
-    momentum_fixed = fixed_axes.get("momentum", None) if fixed_axes else None
-    orbital_real_fixed = fixed_axes.get("orbital_real", None) if fixed_axes else None
-    spin_real_fixed = fixed_axes.get("spin_real", None) if fixed_axes else None
-
-    fig_orbital_momentum = visual.plot_orbital_momentum(
-        data_list, t_values, fixed_range=momentum_fixed if axis_mode == "fixed" else None
-    )
-    fig_spin_momentum = visual.plot_spin_momentum(
-        data_list, t_values, fixed_range=momentum_fixed if axis_mode == "fixed" else None
-    )
-    fig_orbital_real = visual.plot_orbital_real(
-        data_list, t_values, fixed_range=orbital_real_fixed if axis_mode == "fixed" else None
-    )
-    fig_spin_real = visual.plot_spin_real(
-        data_list, t_values, fixed_range=spin_real_fixed if axis_mode == "fixed" else None
-    )
-    fig_sigmaz_momentum = visual.plot_sigmaz_momentum(
-        data_list, t_values, fixed_range=momentum_fixed if axis_mode == "fixed" else None
-    )
-    fig_sigmaz_real = visual.plot_sigmaz_real(
-        data_list, t_values, fixed_range=orbital_real_fixed if axis_mode == "fixed" else None
-    )
-    fig_nearest_neighbor = visual.plot_nn_correlation_vs_t(data_list, t_values)
-    legend_correl = visual.build_legend_correl()
-    legend_t = visual.build_legend_t(t_values)
+    momentum_fixed = fixed_axes.get("momentum") if fixed_axes and axis_mode == "fixed" else None
+    orbital_real_fixed = fixed_axes.get("orbital_real") if fixed_axes and axis_mode == "fixed" else None
+    spin_real_fixed = fixed_axes.get("spin_real") if fixed_axes and axis_mode == "fixed" else None
 
     return (
-        fig_orbital_momentum,  # t-plot-1
-        fig_spin_momentum,     # t-plot-2
-        fig_orbital_real,      # t-plot-3
-        fig_spin_real,         # t-plot-4
-        fig_nearest_neighbor,  # t-plot-5
-        fig_sigmaz_momentum,   # t-plot-6
-        fig_sigmaz_real,       # t-plot-7
-        legend_correl,          # legend-correl
-        legend_t               # legend-t
+        visual.plot_orbital_momentum(data_list, t_values, fixed_range=momentum_fixed),
+        visual.plot_spin_momentum(data_list, t_values, fixed_range=momentum_fixed),
+        visual.plot_orbital_real(data_list, t_values, fixed_range=orbital_real_fixed),
+        visual.plot_spin_real(data_list, t_values, fixed_range=spin_real_fixed),
+        visual.plot_nn_correlation_vs_t(data_list, t_values),
+        visual.plot_sigmaz_momentum(data_list, t_values, fixed_range=momentum_fixed),
+        visual.plot_sigmaz_real(data_list, t_values, fixed_range=orbital_real_fixed),
+        visual.build_legend_correl(),
+        visual.build_legend_t(t_values)
     )
-

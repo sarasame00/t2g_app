@@ -3,7 +3,7 @@ def in_range(value, low, high, tol=1e-4):
     """
     Check if a value is within [low, high], allowing for a small tolerance.
 
-    Parameters:
+    Parameters
     ----------
     value : float
         The value to check.
@@ -14,29 +14,29 @@ def in_range(value, low, high, tol=1e-4):
     tol : float
         Numerical tolerance to allow slight deviations.
 
-    Returns:
+    Returns
     -------
     bool
         True if value is within [low - tol, high + tol], False otherwise.
     """
     return (low - tol) <= value <= (high + tol)
 
+
 # === Main Function: Ion Type Inference ===
 def infer_ion_type(row):
     """
     Infer the type of ion (3d, 4d, 5d) based on simulation parameters.
 
-    Parameters:
+    Parameters
     ----------
     row : dict-like or pandas Series
         Dictionary of parameter values for a given simulation.
 
-    Returns:
+    Returns
     -------
     str
         Inferred ion type ("3d_d1", "4d_d1", "5d_d1"), or "unknown" if no match or format error.
     """
-
     rules = {
         "3d_d1": {
             "N": (1, 1),

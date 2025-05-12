@@ -11,9 +11,20 @@ from sync.config import SERVICE_ACCOUNT_FILE, LOCAL_DATA_FOLDER, GDRIVE_FOLDER_I
 # === Google Drive API Config ===
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
-# === Service Initialization ===
+
 def get_drive_service():
-    """Authenticate and return a Google Drive service object."""
+    """Authenticate and return a Google Drive service object.
+
+    Returns
+    -------
+    googleapiclient.discovery.Resource
+        Authenticated Google Drive API service.
+
+    Raises
+    ------
+    ConnectionError
+        If authentication fails.
+    """
     try:
         creds = service_account.Credentials.from_service_account_file(
             SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -23,9 +34,27 @@ def get_drive_service():
         print(f"❌ Failed to authenticate Google Drive service: {e}")
         raise ConnectionError("Google Drive authentication failed.")
 
-# === Helper to List Files ===
+
 def list_files_in_folder(service, folder_id):
-    """List all files in a given Google Drive folder."""
+    """List all files in a given Google Drive folder.
+
+    Parameters
+    ----------
+    service : googleapiclient.discovery.Resource
+        Authenticated Google Drive API service.
+    folder_id : str
+        ID of the Google Drive folder.
+
+    Returns
+    -------
+    list of dict
+        List of file metadata dictionaries (id, name).
+
+    Raises
+    ------
+    ConnectionError
+        If the file listing fails.
+    """
     query = f"'{folder_id}' in parents and trashed = false"
     files = []
     page_token = None
@@ -49,9 +78,27 @@ def list_files_in_folder(service, folder_id):
 
     return files
 
-# === Download Metadata CSV ===
+
 def download_metadata_csv(model):
-    """Download the metadata CSV for a model ('lat' or 'ss') from Drive."""
+    """Download the metadata CSV for a model ('lat' or 'ss') from Drive.
+
+    Parameters
+    ----------
+    model : str
+        Either 'lat' or 'ss'.
+
+    Returns
+    -------
+    Path or None
+        Local path to downloaded file, or None if download failed.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the CSV file is not found on Drive.
+    IOError
+        If the file cannot be saved locally.
+    """
     assert model in ["lat", "ss"], "Model must be 'lat' or 'ss'"
 
     service = get_drive_service()
@@ -70,10 +117,9 @@ def download_metadata_csv(model):
     if metadata_filename not in file_lookup:
         raise FileNotFoundError(f"{metadata_filename} not found in Google Drive.")
 
-    print(f"📥 Downloading metadata: {metadata_filename}")
+    print(f"📅 Downloading metadata: {metadata_filename}")
     request = service.files().get_media(fileId=file_lookup[metadata_filename])
 
-    # Ensure parent directory exists
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -89,13 +135,21 @@ def download_metadata_csv(model):
 
     return local_path
 
-# === Global Variables for Downloading ===
-_download_progress = ""   # Track download progress messages
-_download_thread = None   # Background thread handler
 
-# === Download Specific Files ===
+_download_progress = ""
+_download_thread = None
+
+
 def download_specific_files(model_name, filenames):
-    """Download specific simulation files for a given model."""
+    """Download specific simulation files for a given model.
+
+    Parameters
+    ----------
+    model_name : str
+        Model name ('lat' or 'ss').
+    filenames : list of str
+        List of filenames to download.
+    """
     global _download_progress
 
     if not filenames:
@@ -104,7 +158,6 @@ def download_specific_files(model_name, filenames):
 
     service = get_drive_service()
     folder_id = GDRIVE_FOLDER_IDS[model_name]
-
     local_dir = LOCAL_DATA_FOLDER / f"{model_name}_data"
     local_dir.mkdir(parents=True, exist_ok=True)
 
@@ -112,7 +165,6 @@ def download_specific_files(model_name, filenames):
 
     drive_files = list_files_in_folder(service, folder_id)
     drive_lookup = {f['name']: f['id'] for f in drive_files}
-
     total_files = len(filenames)
 
     for idx, filename in enumerate(filenames, start=1):
@@ -143,15 +195,29 @@ def download_specific_files(model_name, filenames):
 
     _download_progress = "✅ Download finished."
 
-# === Background Thread Launcher ===
+
 def start_download_thread(model_name, filenames):
-    """Start downloading files in a background thread."""
+    """Start downloading files in a background thread.
+
+    Parameters
+    ----------
+    model_name : str
+        Model name ('lat' or 'ss').
+    filenames : list of str
+        Files to download.
+    """
     global _download_thread
     _download_thread = threading.Thread(target=download_specific_files, args=(model_name, filenames))
     _download_thread.start()
 
-# === Getter for Progress Log ===
+
 def get_progress_log():
-    """Return the current download progress message."""
+    """Return the current download progress message.
+
+    Returns
+    -------
+    str
+        Current download status string.
+    """
     global _download_progress
     return _download_progress
