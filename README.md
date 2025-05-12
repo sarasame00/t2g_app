@@ -1,112 +1,78 @@
-# T2G App
 
-Visual dashboard for exploring orbital-spin-lattice correlations in t₂g electron systems — built using Dash, Electron, and Google Drive.
+# <img src="https://raw.githubusercontent.com/sarasame00/t2g_app/main/app/assets/icon.png" width="22">&nbsp;  t₂g-App
 
-- Dynamic energy and correlation plots (single-site and lattice models)
-- Automatic file sync from Google Drive
-- Offline-ready: works without internet after syncing
-- Cross-platform desktop app (macOS .dmg, Windows .exe)
-- Research-grade tool developed at ICMAB-CSIC
+
+
+t₂g-App is an interactive Dash app for exploring quantum simulation results of models with strong spin-orbit coupling. It supports both lattice and single-site models, allowing users to inspect correlation functions in real and momentum space and across different physical parameters.
+
+- Live app: [https://t2g-app.onrender.com](https://t2g-app.onrender.com)
+- Terminal app: Run locally from the command line
+- Desktop app: In progress (see try-pyinstaller branch)
 
 ---
 
-## Setup (for developers)
+## 🔍 Features
+### Single-site model (ss)
+- Visualize energy maps over 2D parameter grids
+- Choose between ion types (3d, 4d, 5d) and vary U, J, g, B, ξ
+- Interactive colorbars and ion-specific value filtering
+
+### Lattice model (lat)
+
+- Plot correlation functions:
+  - Real-space: ⟨δ𝕋ᵢ δ𝕋ⱼ⟩, ⟨δ𝕎ᵢ δ𝕎ⱼ⟩, ⟨δσ_zᵢ δσ_zⱼ⟩
+  - Momentum-space along symmetry path Γ–X–M–R
+- Analyze how correlations evolve with parameters like t, U, J, g, ξ
+- Supports multiple hopping values for comparative studies
+
+## ⚙️ How Sync Works (Local Use Only)
+When running locally, the app provides a "Sync" page to fetch simulation results directly from Google Drive:
+
+- You choose a model and ion types
+- The app checks which simulations are missing locally
+- It downloads only those needed, using a background thread
+- Files are saved to a local cache (`./data/`)
+
+> ⚠️ The sync page is not functional in the hosted version on Render since it  doesn't support persistent storage or background threads.
+
+## 🚀 Run the app
+
+### ▶  Option 1: Use the hosted Web version
+
+Visit:
+👉 https://t2g-app.onrender.com
+
+Note: The “Sync” tab is not functional in this hosted version.
+
+### ▶  Option 2: Run locally
+
+Clone the repo and install dependencies:
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/sarasame00/t2g_app
+git clone https://github.com/lexschz13/t2g_app.git
 cd t2g_app
-
-# 2. Create a Python virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 3. Install Python dependencies
 pip install -r requirements.txt
-
-# 4. Run the app (development server)
-python app/run.py
+python app.py
 ```
 
-Or launch the app as a **Desktop Application** with Electron:
-
+## 📊 Try local plots (without Dash)
+Use `test_local_plot.py` to generate standalone HTML plots from HDF5 data:
 ```bash
-cd electron
-npm install
-npm start
+python test_local_plot.py
 ```
 
-This starts the Python server and opens the Electron window automatically.
+## 🧪 Work in progress: Desktop app
 
----
-
-## Main Features
-
-- **Google Drive Sync**:  
-  Fetches simulation metadata and missing data files automatically.
-
-- **Single-Site Model**:  
-  Explore local and synchronized **energy maps** by tuning interaction parameters (U, J, B, λ, g).
-
-- **Lattice Model**:  
-  Visualize **correlation functions** along high-symmetry paths (Γ→X→M→R) for varying hopping values (`t`).
-
-- **Sync Manager**:  
-  Check missing simulation files and download only what's missing from Drive.
-
-- **Offline Mode**:  
-  Once files are downloaded, the app works **completely offline**.
-
-- **Built with**:  
-    - Python 3.10+
-    - Dash & Plotly
-    - Electron
-    - Google Drive API
-    - Electron Builder
-
----
-
-## Credentials
-
-Place your Google Drive service account JSON here:
-
-```
-sync/drive_service_account.json
-```
-
-(Private — do not commit this file to Git.)
-
----
-
-## Dev Notes
-
-- `app/run.py` is the main entry point for the Dash server.
-- All simulation logic is under:
-  - `logic/`
-  - `sync/`
-  - `plots/`
-- Electron manages launching the server + desktop frontend (`electron/main.js`).
-- Data is dynamically fetched if missing, otherwise cached locally under `data/`.
-
----
-
-##  Build a desktop installer
-
-### Build `.app` or `.exe` installer:
-
+A PyInstaller-based desktop version is under development in the `try-pyinstaller` branch. It's experimental and not yet stable.
 ```bash
-cd electron
-npm run dist
+git checkout try-pyinstaller
 ```
 
-- Creates `.dmg` installer on macOS
-- Creates `.exe` installer on Windows
-- (No manual config needed — auto-detects OS)
+## 📁 Project Structure
 
-Find final builds under:
+- `app.py` – Dash entrypoint
+- `plots/` – Visualization logic
+- `logic/` – Data loading and transformation utilities
+- `sync/` – File download tools (used locally)
+- `test_local_plot.py` – Basic Plotly testing script
 
-```
-electron/dist/
-```
-
----
