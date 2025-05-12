@@ -1,4 +1,3 @@
-'''
 import dash
 from dash import html, dcc, dash_table, Input, Output, State, callback, ctx
 import dash.exceptions
@@ -189,5 +188,3 @@ if is_connected():
         """
         progress_text = get_progress_log()
         return html.Div(progress_text)
-
-'''

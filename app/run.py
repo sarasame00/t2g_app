@@ -96,7 +96,7 @@ def update_navbar(pathname):
 
     links.append(make_link("Single-site model", "/"))
     links.append(make_link("Lattice model", "/lat_t"))
-    # links.append(make_link("Sync Page", "/sync"))  # Optional link
+    links.append(make_link("Sync Page", "/sync"))  # Optional link
 
     return html.Div([
         html.Img(
