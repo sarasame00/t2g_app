@@ -2,6 +2,7 @@ from dash import dcc, html, Input, Output, callback, register_page
 import numpy as np
 import os, sys
 from pathlib import Path
+from itertools import product
 
 from logic.data_loader import load_cached_filtered_metadata, load_correl_data
 import plots.visualize as visual
@@ -104,7 +105,7 @@ layout = html.Div([
                     html.Label(param_labels.get(param, param)),
                     dcc.Dropdown(
                         id=f"t-dropdown-{param}",
-                        multi=(param == "t"),
+                        multi= True,
                         clearable=False,
                         style={"width": "100%"}
                     )
@@ -243,7 +244,7 @@ def compute_fixed_axes(selected_ion_type):
     Input("fixed-axes-store", "data"),
     *[Input(f"t-dropdown-{param}", "value") for param in param_names]
 )
-def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, lbd):
+def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U_list, J_list, g_list, t_list, lbd_list):
     """Update all plots based on user inputs and selected parameters.
 
     Parameters
@@ -266,13 +267,17 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
         empty_fig = visual.empty_plot(message="❌ Select an ion type")
         return (empty_fig,) * 7 + (html.Div("No legend"),) * 2
 
-    if not isinstance(t_list, list):
-        t_list = [t_list]
+
+    U_vals = U_list if isinstance(U_list, list) else [U_list]
+    J_vals = J_list if isinstance(J_list, list) else [J_list]
+    g_vals = g_list if isinstance(g_list, list) else [g_list]
+    t_vals = t_list if isinstance(t_list, list) else [t_list]
+    lbd_vals = lbd_list if isinstance(lbd_list, list) else [lbd_list]
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
     data_list, t_values = [], []
 
-    for t in t_list:
+    for U, J, g, t, lbd in product(U_vals, J_vals, g_vals, t_vals, lbd_vals):
         match = filtered_df[
             (filtered_df["N"] == 1) &
             np.isclose(filtered_df["U"], U) &
@@ -291,7 +296,8 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U, J, g, t_list, 
         except Exception:
             continue
         data_list.append(data)
-        t_values.append(t)
+        t_values.append((U, J, g, t, lbd))
+
 
     if not data_list:
         empty_fig = visual.empty_plot(message="❌ No matching data")

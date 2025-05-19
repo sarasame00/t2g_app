@@ -4,14 +4,14 @@ from dash import html
 from logic.sym_utils import take_borders, antifourier
 
 
-def plot_orbital_momentum(data, t_values=None, fixed_range=None):
+def plot_orbital_momentum(data, param_combos=None, fixed_range=None):
     """Plot orbital momentum correlation along iBZ path.
 
     Parameters
     ----------
     data : dict or list of dict
         Dictionary or list of dictionaries containing correlation data.
-    t_values : list of float, optional
+    param_combos : list of float, optional
         Corresponding hopping t values for multiple data entries.
     fixed_range : list or tuple, optional
         If provided, sets fixed y-axis range.
@@ -22,14 +22,21 @@ def plot_orbital_momentum(data, t_values=None, fixed_range=None):
         Plotly figure showing orbital momentum correlations.
     """
     fig = go.Figure()
+    
 
     if isinstance(data, list):
         for idx, d in enumerate(data):
             orbcharge = 4 * (d["corrdiag"] - d["corroffd"])
             dist, orbcharge_k = take_borders(d["irrBZ"], orbcharge)
+
+            if param_combos:
+                U, J, g, t, lbd = param_combos[idx]
+                label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+            else:
+                label = None
             fig.add_trace(go.Scatter(
                 x=dist, y=orbcharge_k, mode='lines',
-                name=f't={t_values[idx]:.2f} eV' if t_values else None
+                name=label
             ))
             k_sz = d["k_sz"]
     else:
@@ -58,14 +65,14 @@ def plot_orbital_momentum(data, t_values=None, fixed_range=None):
     return fig
 
 
-def plot_orbital_real(data, t_values=None, fixed_range=None):
+def plot_orbital_real(data, param_combos=None, fixed_range=None):
     """Plot orbital real-space correlations.
 
     Parameters
     ----------
     data : dict or list of dict
         Dictionary or list of dictionaries containing correlation data.
-    t_values : list of float, optional
+    param_combos : list of float, optional
         Corresponding hopping t values for multiple data entries.
     fixed_range : list or tuple, optional
         If provided, sets fixed y-axis range.
@@ -81,9 +88,15 @@ def plot_orbital_real(data, t_values=None, fixed_range=None):
         for idx, d in enumerate(data):
             orbcharge = 4 * (d["corrdiag"] - d["corroffd"])
             x, orbcharge_r = antifourier(d["k_sz"], d["irrBZ"], orbcharge)
+
+            if param_combos:
+                U, J, g, t, lbd = param_combos[idx]
+                label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+            else:
+                label = None
             fig.add_trace(go.Scatter(
                 x=x, y=orbcharge_r, mode='lines+markers',
-                name=f't={t_values[idx]:.2f} eV' if t_values else None
+                name=label
             ))
     else:
         orbcharge = 4 * (data["corrdiag"] - data["corroffd"])
@@ -112,14 +125,14 @@ def plot_orbital_real(data, t_values=None, fixed_range=None):
     return fig
 
 
-def plot_spin_momentum(data, t_values=None, fixed_range=None):
+def plot_spin_momentum(data, param_combos=None, fixed_range=None):
     """Plot spin momentum correlation along iBZ path.
 
     Parameters
     ----------
     data : dict or list of dict
         Dictionary or list of dictionaries containing correlation data.
-    t_values : list of float, optional
+    param_combos : list of float, optional
         Corresponding hopping t values for multiple data entries.
     fixed_range : list or tuple, optional
         If provided, sets fixed y-axis range.
@@ -135,9 +148,15 @@ def plot_spin_momentum(data, t_values=None, fixed_range=None):
         for idx, d in enumerate(data):
             spincharge = 2 * (3 * d["corrdiag"] + d["corroffd"])
             dist, spin_k = take_borders(d["irrBZ"], spincharge)
+
+            if param_combos:
+                U, J, g, t, lbd = param_combos[idx]
+                label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+            else:
+                label = None
             fig.add_trace(go.Scatter(
                 x=dist, y=spin_k, mode='lines',
-                name=f't={t_values[idx]:.2f} eV' if t_values else None
+                name=label
             ))
             k_sz = d["k_sz"]
     else:
@@ -165,14 +184,14 @@ def plot_spin_momentum(data, t_values=None, fixed_range=None):
 
     return fig
 
-def plot_spin_real(data, t_values=None, fixed_range=None):
+def plot_spin_real(data, param_combos=None, fixed_range=None):
     """Plot spin real-space correlations.
 
     Parameters
     ----------
     data : dict or list of dict
         Dictionary or list of dictionaries containing correlation data.
-    t_values : list of float, optional
+    param_combos : list of float, optional
         Corresponding hopping t values for multiple data entries.
     fixed_range : list or tuple, optional
         If provided, sets fixed y-axis range.
@@ -188,9 +207,15 @@ def plot_spin_real(data, t_values=None, fixed_range=None):
         for idx, d in enumerate(data):
             spincharge = 2 * (3 * d["corrdiag"] + d["corroffd"])
             x, spin_r = antifourier(d["k_sz"], d["irrBZ"], spincharge)
+
+            if param_combos:
+                U, J, g, t, lbd = param_combos[idx]
+                label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+            else:
+                label = None
             fig.add_trace(go.Scatter(
                 x=x, y=spin_r, mode='markers+lines',
-                name=f't={t_values[idx]:.2f} eV' if t_values else None
+                name=label
             ))
     else:
         spincharge = 2 * (3 * data["corrdiag"] + data["corroffd"])
@@ -218,14 +243,14 @@ def plot_spin_real(data, t_values=None, fixed_range=None):
     return fig
 
 
-def plot_nn_correlation_vs_t(data_list, t_values):
+def plot_nn_correlation_vs_t(data_list, param_combos):
     """Plot nearest-neighbor orbital and spin-orbital correlations vs hopping t.
 
     Parameters
     ----------
     data_list : list of dict
         List of dictionaries, each containing simulation correlation data.
-    t_values : list of float
+    param_combos : list of float
         List of hopping t values corresponding to each dataset.
 
     Returns
@@ -233,38 +258,38 @@ def plot_nn_correlation_vs_t(data_list, t_values):
     go.Figure
         Plotly figure comparing ⟨ δ𝕋 δ𝕋 ⟩ and ⟨ δ𝕎 δ𝕎 ⟩ at nearest-neighbor distance.
     """
-    corr_AW = []
-    corr_AT = []
+    colors = px.colors.qualitative.Plotly
 
-    for data in data_list:
+    fig = go.Figure()
+
+    for idx, data in enumerate(data_list):
+        U, J, g, t, lbd = param_combos[idx]
         orbcharge = 4 * (data["corrdiag"] - data["corroffd"])
         spincharge = 2 * (3 * data["corrdiag"] + data["corroffd"])
 
         x_orb, orb_r = antifourier(data["k_sz"], data["irrBZ"], orbcharge)
         x_spin, spin_r = antifourier(data["k_sz"], data["irrBZ"], spincharge)
 
-        corr_AT.append(orb_r[1])  # Orbital correlation at first neighbor
-        corr_AW.append(spin_r[1])  # Spin-orbital correlation at first neighbor
+        color = colors[idx % len(colors)]
+        label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
 
-    fig = go.Figure()
+        # Orbital
+        fig.add_trace(go.Scatter(
+            x=[t], y=[orb_r[1]],
+            mode="markers",
+            name=f"Orbital: {label}",
+            marker=dict(symbol="triangle-up", color=color, size=10),
+            showlegend=False
+        ))
 
-    fig.add_trace(go.Scatter(
-        x=t_values, y=corr_AT,
-        mode="markers+lines",
-        name="⟨ δ𝕋 δ𝕋 ⟩ (Orbital)",
-        marker_symbol="triangle-up",
-        marker_color="#2145eb",
-        line=dict(color="#2145eb"),
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=t_values, y=corr_AW,
-        mode="markers+lines",
-        name="⟨ δ𝕎 δ𝕎 ⟩ (Spin-Orbital)",
-        marker_symbol="square",
-        marker_color="#f83337",
-        line=dict(color="#f83337"),
-    ))
+        # Spin-orbital
+        fig.add_trace(go.Scatter(
+            x=[t], y=[spin_r[1]],
+            mode="markers",
+            name=f"Spin-Orbital: {label}",
+            marker=dict(symbol="square", color=color, size=10),
+            showlegend=False
+        ))
 
     fig.update_layout(
         xaxis_title="t (eV)",
@@ -278,14 +303,14 @@ def plot_nn_correlation_vs_t(data_list, t_values):
     return fig
 
 
-def plot_sigmaz_momentum(data, t_values=None, fixed_range=None):
+def plot_sigmaz_momentum(data, param_combos=None, fixed_range=None):
     """Plot sigma_z correlation along iBZ path.
 
     Parameters
     ----------
     data : dict or list of dict
         Dictionary or list of dictionaries containing correlation data.
-    t_values : list of float, optional
+    param_combos : list of float, optional
         Corresponding hopping t values for multiple data entries.
     fixed_range : list or tuple, optional
         If provided, sets fixed y-axis range.
@@ -301,9 +326,15 @@ def plot_sigmaz_momentum(data, t_values=None, fixed_range=None):
         for idx, d in enumerate(data):
             fullspin = 6 * d["corrdiag"] - 4 * d["corroffd"]
             dist, spin_k = take_borders(d["irrBZ"], fullspin)
+
+            if param_combos:
+                U, J, g, t, lbd = param_combos[idx]
+                label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+            else:
+                label = None
             fig.add_trace(go.Scatter(
                 x=dist, y=spin_k, mode='lines',
-                name=f't={t_values[idx]:.2f} eV' if t_values else None
+                name=label
             ))
             k_sz = d["k_sz"]
     else:
@@ -332,14 +363,14 @@ def plot_sigmaz_momentum(data, t_values=None, fixed_range=None):
     return fig
 
 
-def plot_sigmaz_real(data, t_values=None, fixed_range=None):
+def plot_sigmaz_real(data, param_combos=None, fixed_range=None):
     """Plot sigma_z real-space correlations.
 
     Parameters
     ----------
     data : dict or list of dict
         Dictionary or list of dictionaries containing correlation data.
-    t_values : list of float, optional
+    param_combos : list of float, optional
         Corresponding hopping t values for multiple data entries.
     fixed_range : list or tuple, optional
         If provided, sets fixed y-axis range.
@@ -355,9 +386,15 @@ def plot_sigmaz_real(data, t_values=None, fixed_range=None):
         for idx, d in enumerate(data):
             fullspin = 6 * d["corrdiag"] - 4 * d["corroffd"]
             x, spin_r = antifourier(d["k_sz"], d["irrBZ"], fullspin)
+
+            if param_combos:
+                U, J, g, t, lbd = param_combos[idx]
+                label = f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+            else:
+                label = None
             fig.add_trace(go.Scatter(
                 x=x, y=spin_r, mode='markers+lines',
-                name=f't={t_values[idx]:.2f} eV' if t_values else None
+                name=label
             ))
     else:
         fullspin = 6 * data["corrdiag"] - 4 * data["corroffd"]
@@ -420,7 +457,7 @@ def build_legend_correl():
     """
     colors = {
         "Orbital": "#2145eb",
-        "Spin-Orbital": "#f83337"
+        "Spin-Orbital": "#2145eb"
     }
 
     corr_section = html.Div([
@@ -440,13 +477,13 @@ def build_legend_correl():
     return corr_section
 
 
-def build_legend_t(t_values):
-    """Build a legend section displaying the t values used in plots.
+def build_legend_t(param_tuples):
+    """Build a legend displaying full parameter combinations used in plots.
 
     Parameters
     ----------
-    t_values : list of float
-        List of hopping t values displayed in plots.
+    param_tuples : list of tuple
+        List of (U, J, g, t, lbd) parameter combinations.
 
     Returns
     -------
@@ -454,14 +491,36 @@ def build_legend_t(t_values):
         Dash HTML component representing the legend.
     """
     t_colors = px.colors.qualitative.Plotly
-    t_section = html.Div([
-        html.Div("Hopping t values", style={"fontWeight": "bold", "marginTop": "10px", "marginBottom": "5px"}),
-        html.Ul([
-            html.Li([
-                html.Span("■", style={"color": t_colors[i % len(t_colors)], "marginRight": "6px", "fontSize": "14px", "verticalAlign": "middle"}),
-                f"t = {t:.2f} eV"
-            ]) for i, t in enumerate(sorted(t_values))
-        ], style={"listStyleType": "none", "paddingLeft": "0"})
-    ], style={"marginTop": "5px"})
 
-    return t_section
+    # Legend items
+    legend_items = [
+        html.Li([
+            html.Span("■", style={
+                "color": t_colors[i % len(t_colors)],
+                "marginRight": "6px",
+                "fontSize": "14px",
+                "verticalAlign": "middle"
+            }),
+            f"U={U:.2f}, J={J:.2f}, g={g:.2f}, t={t:.2f}, ξ={lbd:.2f}"
+        ]) for i, (U, J, g, t, lbd) in enumerate(param_tuples)
+    ]
+
+    return html.Div([
+        html.Div("Parameter combinations", style={
+            "fontWeight": "bold",
+            "marginTop": "10px",
+            "marginBottom": "5px"
+        }),
+        html.Div(
+            html.Ul(legend_items, style={
+                "listStyleType": "none",
+                "paddingLeft": "0",
+                "margin": "0"
+            }),
+            style={
+                "maxHeight": "160px",     # 🔹 Adjust as needed
+                "overflowY": "auto",
+                "paddingRight": "5px"
+            }
+        )
+    ])
