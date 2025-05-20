@@ -3,6 +3,7 @@ import numpy as np
 import os, sys
 from pathlib import Path
 from itertools import product
+import re
 
 from logic.data_loader import load_cached_filtered_metadata, load_correl_data
 import plots.visualize as visual
@@ -277,9 +278,17 @@ def update_lat_plots(selected_ion_type, axis_mode, fixed_axes, U_list, J_list, g
     filtered_df = df[df['ion_type'] == selected_ion_type]
     data_list, t_values = [], []
 
+
+
+    match_n = re.search(r'_d(\d+)', selected_ion_type)
+    if match_n:
+        N = int(match_n.group(1))
+    else:
+        raise ValueError(f"Cannot extract N from ion_type: '{selected_ion_type}'") 
+
     for U, J, g, t, lbd in product(U_vals, J_vals, g_vals, t_vals, lbd_vals):
         match = filtered_df[
-            (filtered_df["N"] == 1) &
+            (filtered_df["N"] == N) &
             np.isclose(filtered_df["U"], U) &
             np.isclose(filtered_df["J"], J) &
             np.isclose(filtered_df["g"], g) &
