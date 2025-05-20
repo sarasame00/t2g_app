@@ -112,7 +112,7 @@ if is_connected():
         if n_clicks == 0:
             return dash.no_update, dash.no_update
 
-        df = load_simulation_metadata(model)
+        df = load_simulation_metadata(model, force_download=True)
         missing = get_files_to_download(df, ion_types, model)
 
         if missing.empty:

@@ -49,7 +49,7 @@ Note: The “Sync” tab is not functional in this hosted version.
 Clone the repo and install dependencies:
 
 ```bash
-git clone https://github.com/lexschz13/t2g_app.git
+git clone https://github.com/sarasame00/t2g_app.git
 cd t2g_app
 pip install -r requirements.txt
 python app.py
