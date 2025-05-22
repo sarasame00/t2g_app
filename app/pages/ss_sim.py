@@ -2,6 +2,7 @@ import numpy as np
 import plotly.express as px
 from dash import dcc, html, Input, Output, callback, register_page
 from matplotlib.colors import LinearSegmentedColormap, to_hex
+import re
 
 from logic.data_loader import load_cached_filtered_metadata
 from sync.config import LOCAL_DATA_FOLDER
@@ -237,8 +238,15 @@ def update_figure(selected_ion_type, colorbar_mode, fixed_zrange, U, J, g, lbd, 
         return empty_plot("❌ Select an ion type")
 
     filtered_df = df[df['ion_type'] == selected_ion_type]
+
+    match_n = re.search(r'_d(\d+)', selected_ion_type)
+    if match_n:
+        N = int(match_n.group(1))
+    else:
+        raise ValueError(f"Cannot extract N from ion_type: '{selected_ion_type}'") 
+
     match = filtered_df[
-        (filtered_df["N"] == 1) &
+        (filtered_df["N"] == N) &
         np.isclose(filtered_df["U"], U) &
         np.isclose(filtered_df["J"], J) &
         np.isclose(filtered_df["g"], g) &
