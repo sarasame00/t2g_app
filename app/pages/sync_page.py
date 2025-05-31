@@ -58,7 +58,14 @@ else:
         dcc.Dropdown(["lat", "ss"], id="model-select", value="lat"),
 
         html.Label("Select Ion Types"),
-        dcc.Checklist(["3d_d1", "4d_d1", "5d_d1", "3d_d2", "4d_d2", "5d_d2"], id="ion-select", value=["3d_d1"]),
+        dcc.Checklist(
+                ["3d_d1", "3d_d2", "3d_d3", "3d_d4", "3d_d5",
+                "4d_d1", "4d_d2", "4d_d3", "4d_d4", "4d_d5",
+                "5d_d1", "5d_d2", "5d_d3", "5d_d4", "5d_d5"],
+                id="ion-select",
+                value=["3d_d1"],
+                labelStyle={'display': 'inline-block', 'width': '18%', 'margin': '4px 0'}
+            ),
 
         html.Br(),
         html.Button("🔍 Check Available Simulations", id="check-btn", n_clicks=0),
